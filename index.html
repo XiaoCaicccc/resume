@@ -346,6 +346,7 @@ section.page-flipped::after {
   /* 移动端降级：不使用 3D 旋转 */
   section {
     transform: translateY(20px);
+    opacity: 0.3;
     transition: transform 0.5s ease, opacity 0.5s ease;
   }
   section.page-flipped {
@@ -549,7 +550,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const dots = document.querySelectorAll('.nav-dot');
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
-      if (entry.isIntersecting) {
+      if (entry.intersectionRatio >= 0.3) {
         // 导航点高亮
         dots.forEach(d => d.classList.remove('active'));
         const active = document.querySelector(`.nav-dot[data-target="${entry.target.id}"]`);
@@ -560,7 +561,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
     });
-  }, { threshold: 0.85, rootMargin: '0px 0px 5% 0px' });
+  }, { threshold: [0, 0.3, 0.6], rootMargin: '0px 0px 5% 0px' });
   document.querySelectorAll('section[id]').forEach(s => observer.observe(s));
   dots.forEach(d => d.addEventListener('click', () => {
     document.getElementById(d.dataset.target).scrollIntoView({ behavior: 'smooth' });
