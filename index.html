@@ -55,6 +55,15 @@ h3 { font-size: 1.3rem; }
   pointer-events: none;
   z-index: 0;
   line-height: 1;
+  /* 水印独立翻页动画，比章节主体延迟 */
+  transition: transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) 0.1s,
+              opacity 0.7s ease 0.1s;
+  transform: rotateY(-15deg) translateX(30px);
+  opacity: 0;
+}
+section.page-flipped .chapter-number {
+  transform: rotateY(0) translateX(0);
+  opacity: 1;
 }
 
 /* 导航点 */
@@ -109,7 +118,46 @@ h3 { font-size: 1.3rem; }
 }
 
 /* 通用章节 */
-section { min-height: 90vh; display: flex; align-items: center; position: relative; }
+/* ========== 翻页动画：杂志风格进出场 ========== */
+section {
+  min-height: 90vh;
+  display: flex;
+  align-items: center;
+  position: relative;
+  /* 初始翻页状态 */
+  transform: perspective(1200px) rotateY(-8deg) translateX(40px);
+  opacity: 0;
+  transition: transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.7s ease;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+/* 翻页阴影 */
+section::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 30px; height: 100%;
+  background: linear-gradient(to right, rgba(0,0,0,0.06), transparent);
+  pointer-events: none;
+  transition: opacity 0.5s;
+  opacity: 1;
+}
+/* 翻到位 */
+section.page-flipped {
+  transform: perspective(1200px) rotateY(0) translateX(0);
+  opacity: 1;
+}
+section.page-flipped::after {
+  opacity: 0;
+}
+/* 首屏不参与翻页 */
+#hero {
+  transform: none;
+  opacity: 1;
+}
+#hero::after {
+  display: none;
+}
 
 /* 技能条 */
 .skill-bar { background: #e8e4d8; height: 6px; border-radius: 3px; margin: 1.2rem 0; overflow: hidden; }
@@ -295,6 +343,17 @@ section { min-height: 90vh; display: flex; align-items: center; position: relati
 @media (max-width: 768px) {
   .nav-dots { display: none; }
   .chapter-number { font-size: 4rem; left: 0; top: 1rem; }
+  /* 移动端降级：不使用 3D 旋转 */
+  section {
+    transform: translateY(20px);
+    transition: transform 0.5s ease, opacity 0.5s ease;
+  }
+  section.page-flipped {
+    transform: translateY(0);
+  }
+  #hero {
+    transform: none;
+  }
   .cards-scroll { flex-direction: column; overflow-x: visible; }
   .project-card { flex: auto; }
   .timeline { padding-left: 20px; }
@@ -486,17 +545,22 @@ section { min-height: 90vh; display: flex; align-items: center; position: relati
 
 document.addEventListener('DOMContentLoaded', function() {
 
-  // ========== 1. 导航联动 ==========
+  // ========== 1. 导航联动 + 翻页动画 ==========
   const dots = document.querySelectorAll('.nav-dot');
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
+        // 导航点高亮
         dots.forEach(d => d.classList.remove('active'));
         const active = document.querySelector(`.nav-dot[data-target="${entry.target.id}"]`);
         if (active) active.classList.add('active');
+        // 翻页动画：进入视口即翻页，不撤销（只加不移除）
+        if (entry.target.id !== 'hero') {
+          entry.target.classList.add('page-flipped');
+        }
       }
     });
-  }, { threshold: 0.5 });
+  }, { threshold: 0.85, rootMargin: '0px 0px 5% 0px' });
   document.querySelectorAll('section[id]').forEach(s => observer.observe(s));
   dots.forEach(d => d.addEventListener('click', () => {
     document.getElementById(d.dataset.target).scrollIntoView({ behavior: 'smooth' });
@@ -749,7 +813,8 @@ document.addEventListener('DOMContentLoaded', function() {
   function hideToast() {
     const t = document.getElementById('toast');
     if (t) t.style.opacity = '0';
-  }
+  }
+
 
 });
 </script>
