@@ -339,6 +339,57 @@ section.page-flipped::after {
   to { opacity: 1; transform: translateY(0); }
 }
 
+
+/* ========== 图标已升级为CSS抽象图形 ========== */
+
+/* 卡片图标容器 */
+.card-icon {
+  width: 80px; height: 44px;
+  margin-bottom: 0.8rem;
+}
+.card-icon .card-svg {
+  width: 100%; height: 100%;
+  display: block;
+}
+/* 项目卡片小图标 */
+.project-icon {
+  width: 28px; height: 28px;
+  margin-bottom: 0.5rem;
+}
+.project-icon .card-svg-sm {
+  width: 100%; height: 100%;
+  display: block;
+}
+
+/* 技能标签前的菱形装饰 */
+#about p[style*="font-weight"]::before {
+  content: "\25C7";
+  color: var(--accent);
+  margin-right: 0.5em;
+  font-size: 0.75em;
+  font-weight: 400;
+}
+
+/* 时间线节点升级：空心圆环 */
+.timeline-dot {
+  background: var(--bg) !important;
+  border: 2px solid var(--primary) !important;
+}
+/* 章节翻入后节点变实心 */
+section.page-flipped .timeline-dot {
+  background: var(--primary) !important;
+}
+
+/* 移动端图标缩小 */
+@media (max-width: 768px) {
+  .card-icon {
+    width: 64px; height: 36px;
+  }
+  .project-icon {
+    width: 24px; height: 24px;
+  }
+}
+
 /* 响应式 */
 @media (max-width: 768px) {
   .nav-dots { display: none; }
@@ -421,18 +472,21 @@ section.page-flipped::after {
     <h2>项目作品</h2>
     <div class="cards-scroll" id="projectCards">
       <div class="project-card">
+        <div class="project-icon"><svg viewBox="0 0 24 24" class="card-svg-sm"><circle cx="12" cy="12" r="5" fill="none" stroke="var(--primary)" stroke-width="1.5"/><line x1="12" y1="2" x2="12" y2="7" stroke="var(--primary)" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="22" stroke="var(--primary)" stroke-width="2" stroke-linecap="round"/><line x1="2" y1="12" x2="7" y2="12" stroke="var(--primary)" stroke-width="2" stroke-linecap="round"/><line x1="17" y1="12" x2="22" y2="12" stroke="var(--primary)" stroke-width="2" stroke-linecap="round"/></svg></div>
         <h3>AI 应用原型系列</h3>
         <p>健身四分化助手、家庭厨房点单系统、初中生学习助手</p>
         <div class="tags"><span class="tag">Vibe Coding</span><span class="tag">Code Buddy</span></div>
         <button class="detail-btn" data-detail="ai-proto">查看详情 →</button>
       </div>
       <div class="project-card">
+        <div class="project-icon"><svg viewBox="0 0 24 24" class="card-svg-sm"><circle cx="12" cy="9" r="6" fill="none" stroke="var(--primary)" stroke-width="1.5"/><path d="M9 14 L9 16 Q12 18 15 16 L15 14" fill="none" stroke="var(--primary)" stroke-width="1.5" stroke-linecap="round"/><line x1="10" y1="17" x2="14" y2="17" stroke="var(--primary)" stroke-width="1.5" stroke-linecap="round"/></svg></div>
         <h3>对 Second Me 的思考</h3>
         <p>从 Agent 孤岛到 PA Space，一篇4000字的技术思辨长文</p>
         <div class="tags"><span class="tag">A2A 网络</span><span class="tag">技术写作</span></div>
         <button class="detail-btn" data-detail="a2a-article">查看详情 →</button>
       </div>
       <div class="project-card">
+        <div class="project-icon"><svg viewBox="0 0 24 24" class="card-svg-sm"><circle cx="9" cy="9" r="6" fill="none" stroke="var(--primary)" stroke-width="1.5" opacity="0.7"/><circle cx="15" cy="15" r="6" fill="none" stroke="var(--primary)" stroke-width="1.5" opacity="0.7"/></svg></div>
         <h3>东风车企校企合作</h3>
         <p>主导“产、学、研、用”跨界项目，搭建价值评估体系</p>
         <div class="tags"><span class="tag">项目管理</span><span class="tag">应急管理</span></div>
@@ -464,11 +518,13 @@ section.page-flipped::after {
     <h2>📂 作品展示</h2>
     <div class="portfolio-grid">
       <div class="portfolio-card">
+        <div class="card-icon"><svg viewBox="0 0 40 48" class="card-svg"><rect x="6" y="2" width="28" height="42" rx="2" fill="none" stroke="var(--primary)" stroke-width="1.5" opacity="0.6"/><path d="M28 2 L28 10 L34 10 Z" fill="none" stroke="var(--primary)" stroke-width="1.5" opacity="0.6"/><line x1="12" y1="18" x2="28" y2="18" stroke="var(--primary)" stroke-width="1" opacity="0.4"/><line x1="12" y1="24" x2="28" y2="24" stroke="var(--primary)" stroke-width="1" opacity="0.4"/><line x1="12" y1="30" x2="22" y2="30" stroke="var(--primary)" stroke-width="1" opacity="0.4"/></svg></div>
         <h3>《对 Second Me 的思考》长文</h3>
         <p>一篇关于 A2A 网络与 Personal Agent Space 的技术思辨</p>
         <button class="detail-btn" data-detail="portfolio-a2a">查看详情 →</button>
       </div>
       <div class="portfolio-card">
+        <div class="card-icon"><svg viewBox="0 0 48 48" class="card-svg"><rect x="6" y="6" width="30" height="24" rx="2" fill="none" stroke="var(--primary)" stroke-width="1.5" opacity="0.4"/><rect x="14" y="18" width="30" height="24" rx="2" fill="none" stroke="var(--primary)" stroke-width="1.5" opacity="0.7"/></svg></div>
         <h3>项目原型截图合集</h3>
         <p>AI 应用原型界面与说明</p>
         <button class="detail-btn" data-detail="portfolio-screenshots">查看详情 →</button>
@@ -485,13 +541,13 @@ section.page-flipped::after {
     <h2>一些没写进简历的事</h2>
     <div class="story-grid">
       <div class="story-card">
-        <div style="font-size:2rem; margin-bottom:0.5rem;">🚲</div>
+        <div class="card-icon"><svg viewBox="0 0 80 40" class="card-svg"><path d="M4 36 L18 28 L26 32 L38 20 L46 26 L56 14 L64 18 L74 6" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="74" cy="6" r="3" fill="var(--primary)"/></svg></div>
         <h3>24 天，成都到拉萨</h3>
         <p>高考完那年夏天，从成都出发，沿 318 国道一路向西。24 天，两千多公里，翻过海拔 5000 米的东达山，晒脱了几层皮。到拉萨那天，觉得“把一件看起来不可能的事从头做到尾”，原来是这种感觉。</p>
         <p style="color:#888; font-style:italic; margin-top:0.5rem;">后来做很多事情时，都会想起那个在川藏线上蹬车的自己。</p>
       </div>
       <div class="story-card">
-        <div style="font-size:2rem; margin-bottom:0.5rem;">🚶</div>
+        <div class="card-icon"><svg viewBox="0 0 80 40" class="card-svg"><path d="M6 8 Q20 24 30 18 T50 28 T72 12" fill="none" stroke="var(--primary)" stroke-width="2" stroke-dasharray="5,4" stroke-linecap="round"/><circle cx="72" cy="12" r="3" fill="var(--primary)"/></svg></div>
         <h3>43 公里夜行</h3>
         <p>某个晚上突发奇想，想去看天安门日出。没怎么犹豫，从学校出发，一晚上走了 43 公里。脚底起泡，天亮时正好站在广场上。</p>
         <p style="color:#888; font-style:italic; margin-top:0.5rem;">不是每次冲动都有结果，但这一趟让我知道，想到就干，大概率不亏。</p>
