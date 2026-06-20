@@ -210,17 +210,53 @@ section.page-flipped::after {
 .detail-btn:hover { background: var(--primary); color: #fff; }
 
 /* 时间线 */
-.timeline { position: relative; padding-left: 40px; }
-.timeline::before {
-  content: ''; position: absolute; left: 19px; top: 0; bottom: 0;
-  width: 2px; background: var(--border); transform-origin: top;
+/* ========== 经历章节排版已升级为左右交替卡片式 ========== */
+.timeline-v2 {
+  position: relative; max-width: 900px; margin: 0 auto; padding: 2rem 0;
 }
-.timeline-item { position: relative; margin-bottom: 2.5rem; padding-left: 30px; }
-.timeline-dot {
-  position: absolute; left: -29px; top: 4px;
-  width: 12px; height: 12px;
-  background: var(--primary); border-radius: 50%;
-  border: 2px solid var(--bg);
+.timeline-v2::before {
+  content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
+  width: 1px; background: var(--border);
+}
+.timeline-row {
+  display: flex; justify-content: flex-start;
+  margin-bottom: 2.5rem; position: relative;
+}
+.timeline-row:nth-child(odd) {
+  justify-content: flex-start; padding-right: 52%;
+}
+.timeline-row:nth-child(even) {
+  justify-content: flex-end; padding-left: 52%;
+}
+.timeline-row::after {
+  content: ''; position: absolute; left: 50%; top: 1.2rem;
+  transform: translateX(-50%);
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid var(--primary); background: var(--bg);
+  z-index: 1;
+  transition: background 0.3s ease;
+}
+.timeline-card {
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 1.5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  max-width: 380px; transition: all 0.3s;
+}
+.timeline-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+.timeline-date {
+  display: inline-block; font-size: 0.85rem;
+  color: var(--accent); font-weight: 600; margin-bottom: 0.3rem;
+  background: rgba(139,46,63,0.06); padding: 0.15rem 0.6rem; border-radius: 3px;
+}
+.timeline-card h4 {
+  font-family: var(--font-heading); font-size: 1.1rem;
+  color: var(--primary); margin: 0.4rem 0 0.2rem;
+}
+.timeline-card p {
+  font-size: 0.9rem; color: var(--text-light); margin: 0;
 }
 
 /* 作品/故事网格 */
@@ -370,15 +406,7 @@ section.page-flipped::after {
   font-weight: 400;
 }
 
-/* 时间线节点升级：空心圆环 */
-.timeline-dot {
-  background: var(--bg) !important;
-  border: 2px solid var(--primary) !important;
-}
-/* 章节翻入后节点变实心 */
-section.page-flipped .timeline-dot {
-  background: var(--primary) !important;
-}
+
 
 /* 移动端图标缩小 */
 @media (max-width: 768px) {
@@ -389,6 +417,29 @@ section.page-flipped .timeline-dot {
     width: 24px; height: 24px;
   }
 }
+/* 卡片和节点逐步入场动画 */
+#experience .timeline-row {
+  opacity: 0;
+  transition: opacity 0.4s ease, transform 0.5s ease;
+}
+#experience .timeline-row:nth-child(odd)  { transform: translateX(-30px); }
+#experience .timeline-row:nth-child(even) { transform: translateX(30px); }
+#experience.page-flipped .timeline-row { opacity: 1; transform: translateX(0); }
+#experience.page-flipped .timeline-row:nth-child(1) { transition-delay: 0s; }
+#experience.page-flipped .timeline-row:nth-child(2) { transition-delay: 0.12s; }
+#experience.page-flipped .timeline-row:nth-child(3) { transition-delay: 0.24s; }
+#experience.page-flipped .timeline-row:nth-child(4) { transition-delay: 0.36s; }
+#experience.page-flipped .timeline-row:nth-child(5) { transition-delay: 0.48s; }
+/* 节点实心动画 */
+#experience.page-flipped .timeline-row::after {
+  background: var(--primary);
+}
+#experience.page-flipped .timeline-row:nth-child(1)::after { transition-delay: 0.08s; }
+#experience.page-flipped .timeline-row:nth-child(2)::after { transition-delay: 0.2s; }
+#experience.page-flipped .timeline-row:nth-child(3)::after { transition-delay: 0.32s; }
+#experience.page-flipped .timeline-row:nth-child(4)::after { transition-delay: 0.44s; }
+#experience.page-flipped .timeline-row:nth-child(5)::after { transition-delay: 0.56s; }
+
 
 /* 响应式 */
 @media (max-width: 768px) {
@@ -408,8 +459,10 @@ section.page-flipped .timeline-dot {
   }
   .cards-scroll { flex-direction: column; overflow-x: visible; }
   .project-card { flex: auto; }
-  .timeline { padding-left: 20px; }
-  .timeline-item { padding-left: 20px; }
+  .timeline-v2::before { left: 18px; }
+  .timeline-row { justify-content: flex-start !important; padding-left: 40px; padding-right: 0 !important; }
+  .timeline-row::after { left: 18px; }
+  .timeline-card { max-width: 100%; }
   .chat-panel { width: 90%; right: 5%; }
   .edit-btn { right: 5.5rem; bottom: 1.8rem; }
 }
@@ -501,12 +554,42 @@ section.page-flipped .timeline-dot {
   <div class="container">
     <div class="chapter-number">03</div>
     <h2>经历</h2>
-    <div class="timeline">
-      <div class="timeline-item"><div class="timeline-dot"></div><strong>2025.8 – 今</strong><br>东风车企与应急管理大学校企合作项目 | 负责人</div>
-      <div class="timeline-item"><div class="timeline-dot"></div><strong>2024.9 – 2025.9</strong><br>校级创新创业中心 | 负责人</div>
-      <div class="timeline-item"><div class="timeline-dot"></div><strong>2024.7 – 2024.8</strong><br>四川蓝海智能装备 | 行政专员</div>
-      <div class="timeline-item"><div class="timeline-dot"></div><strong>2024.3 – 2024.6</strong><br>院办公室 | 学办助管</div>
-      <div class="timeline-item"><div class="timeline-dot"></div><strong>2023.11 – 2024.1</strong><br>北京慧理家 | 市场调研</div>
+    <div class="timeline-v2">
+      <div class="timeline-row">
+        <div class="timeline-card">
+          <span class="timeline-date">2025.8 – 今</span>
+          <h4>东风车企与应急管理大学校企合作项目</h4>
+          <p>负责人</p>
+        </div>
+      </div>
+      <div class="timeline-row">
+        <div class="timeline-card">
+          <span class="timeline-date">2024.9 – 2025.9</span>
+          <h4>校级创新创业中心</h4>
+          <p>负责人</p>
+        </div>
+      </div>
+      <div class="timeline-row">
+        <div class="timeline-card">
+          <span class="timeline-date">2024.7 – 2024.8</span>
+          <h4>四川蓝海智能装备</h4>
+          <p>行政专员</p>
+        </div>
+      </div>
+      <div class="timeline-row">
+        <div class="timeline-card">
+          <span class="timeline-date">2024.3 – 2024.6</span>
+          <h4>院办公室</h4>
+          <p>学办助管</p>
+        </div>
+      </div>
+      <div class="timeline-row">
+        <div class="timeline-card">
+          <span class="timeline-date">2023.11 – 2024.1</span>
+          <h4>北京慧理家</h4>
+          <p>市场调研</p>
+        </div>
+      </div>
     </div>
   </div>
 </section>
