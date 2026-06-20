@@ -160,8 +160,13 @@ section.page-flipped::after {
 }
 
 /* 技能条 */
-.skill-bar { background: #e8e4d8; height: 6px; border-radius: 3px; margin: 1.2rem 0; overflow: hidden; }
-.skill-fill { height: 100%; width: 0; background: var(--primary); border-radius: 3px; transition: width 1s ease; }
+/* ========== 能力展示已升级为7项，带数字递增动画 ========== */
+.ability-item { margin-bottom: 1.2rem; }
+.ability-header { display: flex; justify-content: space-between; margin-bottom: 0.3rem; }
+.ability-name { font-size: 0.9rem; font-weight: 500; color: var(--text); }
+.ability-score { font-size: 0.85rem; color: var(--accent); font-weight: 600; }
+.ability-bar { background: #e8e4d8; height: 5px; border-radius: 3px; overflow: hidden; }
+.ability-fill { height: 100%; width: 0; background: var(--primary); border-radius: 3px; transition: width 1.2s cubic-bezier(0.22, 0.61, 0.36, 1); }
 
 /* 项目横滑卡片 */
 .cards-scroll {
@@ -398,13 +403,7 @@ section.page-flipped::after {
 }
 
 /* 技能标签前的菱形装饰 */
-#about p[style*="font-weight"]::before {
-  content: "\25C7";
-  color: var(--accent);
-  margin-right: 0.5em;
-  font-size: 0.75em;
-  font-weight: 400;
-}
+
 
 
 
@@ -457,6 +456,8 @@ section.page-flipped::after {
   #hero {
     transform: none;
   }
+  .ability-item { margin-bottom: 1rem; }
+  .ability-name { font-size: 0.82rem; }
   .cards-scroll { flex-direction: column; overflow-x: visible; }
   .project-card { flex: auto; }
   .timeline-v2::before { left: 18px; }
@@ -507,12 +508,34 @@ section.page-flipped::after {
         <p>目前的状态：带着一点点经验，在找下一个值得投入的事。</p>
       </div>
       <div style="flex:1; min-width:200px;">
-        <p style="font-weight:600;">组织协调</p>
-        <div class="skill-bar"><div class="skill-fill" style="width:90%;"></div></div>
-        <p style="font-weight:600;">AI应用开发</p>
-        <div class="skill-bar"><div class="skill-fill" style="width:75%;"></div></div>
-        <p style="font-weight:600;">技术写作</p>
-        <div class="skill-bar"><div class="skill-fill" style="width:80%;"></div></div>
+        <div class="ability-item">
+          <div class="ability-header"><span class="ability-name">跨团队组织</span><span class="ability-score">92%</span></div>
+          <div class="ability-bar"><div class="ability-fill" data-width="92%"></div></div>
+        </div>
+        <div class="ability-item">
+          <div class="ability-header"><span class="ability-name">AI 原型开发</span><span class="ability-score">70%</span></div>
+          <div class="ability-bar"><div class="ability-fill" data-width="70%"></div></div>
+        </div>
+        <div class="ability-item">
+          <div class="ability-header"><span class="ability-name">技术写作</span><span class="ability-score">75%</span></div>
+          <div class="ability-bar"><div class="ability-fill" data-width="75%"></div></div>
+        </div>
+        <div class="ability-item">
+          <div class="ability-header"><span class="ability-name">公众表达</span><span class="ability-score">85%</span></div>
+          <div class="ability-bar"><div class="ability-fill" data-width="85%"></div></div>
+        </div>
+        <div class="ability-item">
+          <div class="ability-header"><span class="ability-name">市场洞察</span><span class="ability-score">75%</span></div>
+          <div class="ability-bar"><div class="ability-fill" data-width="75%"></div></div>
+        </div>
+        <div class="ability-item">
+          <div class="ability-header"><span class="ability-name">危机处理</span><span class="ability-score">88%</span></div>
+          <div class="ability-bar"><div class="ability-fill" data-width="88%"></div></div>
+        </div>
+        <div class="ability-item">
+          <div class="ability-header"><span class="ability-name">好奇心与行动力</span><span class="ability-score">95%</span></div>
+          <div class="ability-bar"><div class="ability-fill" data-width="95%"></div></div>
+        </div>
       </div>
     </div>
   </div>
@@ -697,6 +720,27 @@ document.addEventListener('DOMContentLoaded', function() {
         // 翻页动画：进入视口即翻页，不撤销（只加不移除）
         if (entry.target.id !== 'hero') {
           entry.target.classList.add('page-flipped');
+        }
+        // 能力条动画（仅 #about，触发一次）
+        if (entry.target.id === 'about' && !entry.target.dataset.abilityAnimated) {
+          entry.target.dataset.abilityAnimated = '1';
+          const scores = entry.target.querySelectorAll('.ability-score');
+          const fills = entry.target.querySelectorAll('.ability-fill');
+          fills.forEach((fill, i) => {
+            setTimeout(() => { fill.style.width = fill.dataset.width; }, i * 120);
+          });
+          scores.forEach((score, i) => {
+            setTimeout(() => {
+              const target = parseInt(score.textContent);
+              let current = 0;
+              const step = Math.max(1, Math.ceil(target / 30));
+              const iv = setInterval(() => {
+                current += step;
+                if (current >= target) { current = target; clearInterval(iv); }
+                score.textContent = current + '%';
+              }, 20);
+            }, i * 120);
+          });
         }
       }
     });
