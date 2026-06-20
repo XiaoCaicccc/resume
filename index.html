@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蔡俊武 · 个人作品集</title>
+<style>
+/* ========== 全局 ========== */
+:root {
+  --bg: #faf8f0;
+  --text: #2c2c2c;
+  --text-light: #5a5a5a;
+  --primary: #1a3a4a;
+  --accent: #8b2e3f;
+  --border: #e0dcd0;
+  --card-bg: #ffffff;
+  --shadow: 0 2px 12px rgba(0,0,0,0.04);
+  --font-heading: 'Georgia', 'Noto Serif SC', 'STSong', 'Times New Roman', serif;
+  --font-body: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.7;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 排版 */
+h1,h2,h3 { font-family: var(--font-heading); font-weight: 700; color: var(--primary); }
+h1 { font-size: clamp(2.8rem, 6vw, 4.5rem); }
+h2 { font-size: clamp(2rem, 5vw, 3rem); margin-bottom: 0.5em; }
+h3 { font-size: 1.3rem; }
+
+.container {
+  width: 90%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 6rem 0;
+  position: relative;
+}
+
+/* 水印编号 */
+.chapter-number {
+  position: absolute;
+  top: 2rem; left: -2rem;
+  font-family: var(--font-heading);
+  font-size: 8rem;
+  font-weight: 900;
+  color: rgba(26,58,74,0.03);
+  pointer-events: none;
+  z-index: 0;
+  line-height: 1;
+}
+
+/* 导航点 */
+.nav-dots {
+  position: fixed;
+  right: 1.5rem; top: 50%;
+  transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 1.2rem;
+  z-index: 1000;
+}
+.nav-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #c0bdb0;
+  transition: all 0.3s;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.nav-dot.active { background: var(--primary); border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,58,74,0.1); }
+
+/* Hero */
+#hero {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center; position: relative;
+  overflow: hidden;
+}
+#hero .bg-lines {
+  position: absolute; inset: 0; opacity: 0.12;
+  background-image: 
+    linear-gradient(90deg, var(--primary) 1px, transparent 1px),
+    linear-gradient(0deg, var(--primary) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: bg-drift 40s linear infinite;
+}
+@keyframes bg-drift {
+  0% { transform: translate(0,0); }
+  100% { transform: translate(60px,60px); }
+}
+.hero-content { position: relative; z-index: 2; }
+.hero-sub { font-size: 1.2rem; color: var(--text-light); margin-top: 0.5em; }
+.scroll-hint {
+  position: absolute; bottom: 2rem; left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.4rem; color: var(--primary);
+  opacity: 0.5;
+  animation: float 2s ease-in-out infinite;
+}
+@keyframes float {
+  0%,100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(8px); }
+}
+
+/* 通用章节 */
+section { min-height: 90vh; display: flex; align-items: center; position: relative; }
+
+/* 技能条 */
+.skill-bar { background: #e8e4d8; height: 6px; border-radius: 3px; margin: 1.2rem 0; overflow: hidden; }
+.skill-fill { height: 100%; width: 0; background: var(--primary); border-radius: 3px; transition: width 1s ease; }
+
+/* 项目横滑卡片 */
+.cards-scroll {
+  display: flex; overflow-x: auto; gap: 1.5rem;
+  padding: 1rem 0.5rem 2rem;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  cursor: grab;
+}
+.cards-scroll::-webkit-scrollbar { height: 6px; }
+.cards-scroll::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
+.project-card {
+  flex: 0 0 320px;
+  scroll-snap-align: start;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.8rem;
+  box-shadow: var(--shadow);
+  transition: all 0.3s;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.project-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  border-color: var(--primary);
+}
+.project-card .tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.8rem 0; }
+.tag {
+  background: rgba(26,58,74,0.06);
+  color: var(--primary);
+  padding: 0.2rem 0.7rem;
+  border-radius: 3px;
+  font-size: 0.8rem; font-weight: 500;
+}
+.detail-btn {
+  align-self: flex-start; margin-top: 0.8rem;
+  background: transparent;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  padding: 0.4rem 1.2rem;
+  font-size: 0.9rem; border-radius: 3px;
+  cursor: pointer; transition: all 0.2s;
+}
+.detail-btn:hover { background: var(--primary); color: #fff; }
+
+/* 时间线 */
+.timeline { position: relative; padding-left: 40px; }
+.timeline::before {
+  content: ''; position: absolute; left: 19px; top: 0; bottom: 0;
+  width: 2px; background: var(--border); transform-origin: top;
+}
+.timeline-item { position: relative; margin-bottom: 2.5rem; padding-left: 30px; }
+.timeline-dot {
+  position: absolute; left: -29px; top: 4px;
+  width: 12px; height: 12px;
+  background: var(--primary); border-radius: 50%;
+  border: 2px solid var(--bg);
+}
+
+/* 作品/故事网格 */
+.portfolio-grid, .story-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem; margin-top: 2rem;
+}
+.portfolio-card, .story-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2rem;
+  transition: all 0.3s;
+}
+.portfolio-card:hover, .story-card:hover { border-color: var(--primary); box-shadow: 0 6px 16px rgba(0,0,0,0.06); }
+
+/* 模态层 */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: none; align-items: center; justify-content: center;
+  z-index: 2000; backdrop-filter: blur(3px);
+}
+.modal-overlay.active { display: flex; }
+.modal-content {
+  background: #fff; max-width: 700px; width: 90%;
+  max-height: 85vh; overflow-y: auto;
+  border-radius: 12px; padding: 2.5rem;
+  position: relative;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
+.modal-close {
+  position: absolute; top: 1rem; right: 1.5rem;
+  font-size: 1.5rem; background: none; border: none;
+  cursor: pointer; color: #888;
+}
+
+/* AI 按钮 */
+.ai-btn {
+  position: fixed; bottom: 1.8rem; right: 1.8rem;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  border: none; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1500;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(26,58,74,0.4); }
+  70% { box-shadow: 0 0 0 12px rgba(26,58,74,0); }
+  100% { box-shadow: 0 0 0 0 rgba(26,58,74,0); }
+}
+
+/* 编辑按钮 */
+.edit-btn {
+  position: fixed; bottom: 1.8rem; right: 5.5rem;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  border: 1px dashed rgba(0,0,0,0.15);
+  color: #999; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 1500;
+  transition: all 0.3s;
+}
+.edit-btn:hover { background: rgba(0,0,0,0.05); border: 1px solid #aaa; color: #555; }
+.edit-btn.active { background: rgba(100,200,100,0.15); border-color: #7c7; color: #2a7a2a; }
+
+/* 聊天面板 */
+.chat-panel {
+  position: fixed; bottom: 5.5rem; right: 1.8rem;
+  width: 320px; height: 450px;
+  background: #faf8f0;
+  border: 1px solid var(--primary);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  display: none; flex-direction: column;
+  z-index: 1500; overflow: hidden;
+}
+.chat-panel.open { display: flex; }
+.chat-header {
+  background: var(--primary); color: #fff;
+  padding: 0.8rem 1rem; font-size: 0.9rem;
+}
+.chat-messages {
+  flex: 1; overflow-y: auto; padding: 1rem;
+  display: flex; flex-direction: column; gap: 0.8rem;
+}
+.msg {
+  max-width: 85%; padding: 0.6rem 0.9rem;
+  border-radius: 10px; font-size: 0.85rem; line-height: 1.5;
+  animation: fadeInUp 0.2s;
+}
+.msg.user { align-self: flex-end; background: var(--primary); color: #fff; }
+.msg.ai { align-self: flex-start; background: #fff; border: 1px solid var(--border); }
+.quick-btns { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.5rem 1rem; }
+.quick-btn {
+  background: #fff; border: 1px solid var(--border);
+  padding: 0.2rem 0.7rem; border-radius: 14px;
+  font-size: 0.75rem; cursor: pointer; transition: 0.2s;
+}
+.quick-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+.chat-input-area { display: flex; padding: 0.5rem 1rem; border-top: 1px solid var(--border); }
+.chat-input-area input {
+  flex: 1; border: 1px solid var(--border);
+  border-radius: 20px; padding: 0.4rem 1rem; font-size: 0.85rem; outline: none;
+}
+.chat-input-area button {
+  margin-left: 0.4rem; background: var(--primary); color: #fff;
+  border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .nav-dots { display: none; }
+  .chapter-number { font-size: 4rem; left: 0; top: 1rem; }
+  .cards-scroll { flex-direction: column; overflow-x: visible; }
+  .project-card { flex: auto; }
+  .timeline { padding-left: 20px; }
+  .timeline-item { padding-left: 20px; }
+  .chat-panel { width: 90%; right: 5%; }
+  .edit-btn { right: 5.5rem; bottom: 1.8rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- 导航点 -->
+<div class="nav-dots" id="navDots">
+  <div class="nav-dot active" data-target="hero"></div>
+  <div class="nav-dot" data-target="about"></div>
+  <div class="nav-dot" data-target="projects"></div>
+  <div class="nav-dot" data-target="experience"></div>
+  <div class="nav-dot" data-target="portfolio"></div>
+  <div class="nav-dot" data-target="beyond"></div>
+  <div class="nav-dot" data-target="contact"></div>
+</div>
+
+<!-- Hero -->
+<section id="hero">
+  <div class="bg-lines"></div>
+  <div class="hero-content">
+    <h1>蔡俊武</h1>
+    <div class="hero-sub">
+      <p>相信两件事：好奇心和行动力。</p>
+      <p>其他的一切——项目、经历、作品——都是这两件事的结果。</p>
+    </div>
+  </div>
+  <div class="scroll-hint">↓</div>
+</section>
+
+<!-- 关于我 -->
+<section id="about">
+  <div class="container">
+    <div class="chapter-number">01</div>
+    <h2>关于我</h2>
+    <div style="display: flex; flex-wrap: wrap; gap: 3rem;">
+      <div style="flex:2; min-width:260px;">
+        <p>一个想到就去做的人。</p>
+        <p>高考完骑了318，24天蹬到拉萨。大学里带过15个团队，管过百来号人，也组织过路演和辩论赛。</p>
+        <p>最近迷上AI Agent。自己学，自己做原型，写过一篇A2A网络的长文。这个网页就是我和AI一块儿搭的，算是近期最满意的一个小作品。</p>
+        <p>目前的状态：带着一点点经验，在找下一个值得投入的事。</p>
+      </div>
+      <div style="flex:1; min-width:200px;">
+        <p style="font-weight:600;">组织协调</p>
+        <div class="skill-bar"><div class="skill-fill" style="width:90%;"></div></div>
+        <p style="font-weight:600;">AI应用开发</p>
+        <div class="skill-bar"><div class="skill-fill" style="width:75%;"></div></div>
+        <p style="font-weight:600;">技术写作</p>
+        <div class="skill-bar"><div class="skill-fill" style="width:80%;"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 项目作品 -->
+<section id="projects">
+  <div class="container">
+    <div class="chapter-number">02</div>
+    <h2>项目作品</h2>
+    <div class="cards-scroll" id="projectCards">
+      <div class="project-card">
+        <h3>AI 应用原型系列</h3>
+        <p>健身四分化助手、家庭厨房点单系统、初中生学习助手</p>
+        <div class="tags"><span class="tag">Vibe Coding</span><span class="tag">Code Buddy</span></div>
+        <button class="detail-btn" data-detail="ai-proto">查看详情 →</button>
+      </div>
+      <div class="project-card">
+        <h3>对 Second Me 的思考</h3>
+        <p>从 Agent 孤岛到 PA Space，一篇4000字的技术思辨长文</p>
+        <div class="tags"><span class="tag">A2A 网络</span><span class="tag">技术写作</span></div>
+        <button class="detail-btn" data-detail="a2a-article">查看详情 →</button>
+      </div>
+      <div class="project-card">
+        <h3>东风车企校企合作</h3>
+        <p>主导“产、学、研、用”跨界项目，搭建价值评估体系</p>
+        <div class="tags"><span class="tag">项目管理</span><span class="tag">应急管理</span></div>
+        <button class="detail-btn" data-detail="dongfeng">查看详情 →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 经历时间线 -->
+<section id="experience">
+  <div class="container">
+    <div class="chapter-number">03</div>
+    <h2>经历</h2>
+    <div class="timeline">
+      <div class="timeline-item"><div class="timeline-dot"></div><strong>2025.8 – 今</strong><br>东风车企与应急管理大学校企合作项目 | 负责人</div>
+      <div class="timeline-item"><div class="timeline-dot"></div><strong>2024.9 – 2025.9</strong><br>校级创新创业中心 | 负责人</div>
+      <div class="timeline-item"><div class="timeline-dot"></div><strong>2024.7 – 2024.8</strong><br>四川蓝海智能装备 | 行政专员</div>
+      <div class="timeline-item"><div class="timeline-dot"></div><strong>2024.3 – 2024.6</strong><br>院办公室 | 学办助管</div>
+      <div class="timeline-item"><div class="timeline-dot"></div><strong>2023.11 – 2024.1</strong><br>北京慧理家 | 市场调研</div>
+    </div>
+  </div>
+</section>
+
+<!-- 作品展示 -->
+<section id="portfolio">
+  <div class="container">
+    <div class="chapter-number">04</div>
+    <h2>📂 作品展示</h2>
+    <div class="portfolio-grid">
+      <div class="portfolio-card">
+        <h3>《对 Second Me 的思考》长文</h3>
+        <p>一篇关于 A2A 网络与 Personal Agent Space 的技术思辨</p>
+        <button class="detail-btn" data-detail="portfolio-a2a">查看详情 →</button>
+      </div>
+      <div class="portfolio-card">
+        <h3>项目原型截图合集</h3>
+        <p>AI 应用原型界面与说明</p>
+        <button class="detail-btn" data-detail="portfolio-screenshots">查看详情 →</button>
+      </div>
+    </div>
+    <p style="text-align:center; color:#aaa; margin-top:2rem;">更多作品正在路上，这个区域会持续生长。</p>
+  </div>
+</section>
+
+<!-- 简历之外的故事 -->
+<section id="beyond">
+  <div class="container">
+    <div class="chapter-number">05</div>
+    <h2>一些没写进简历的事</h2>
+    <div class="story-grid">
+      <div class="story-card">
+        <div style="font-size:2rem; margin-bottom:0.5rem;">🚲</div>
+        <h3>24 天，成都到拉萨</h3>
+        <p>高考完那年夏天，从成都出发，沿 318 国道一路向西。24 天，两千多公里，翻过海拔 5000 米的东达山，晒脱了几层皮。到拉萨那天，觉得“把一件看起来不可能的事从头做到尾”，原来是这种感觉。</p>
+        <p style="color:#888; font-style:italic; margin-top:0.5rem;">后来做很多事情时，都会想起那个在川藏线上蹬车的自己。</p>
+      </div>
+      <div class="story-card">
+        <div style="font-size:2rem; margin-bottom:0.5rem;">🚶</div>
+        <h3>43 公里夜行</h3>
+        <p>某个晚上突发奇想，想去看天安门日出。没怎么犹豫，从学校出发，一晚上走了 43 公里。脚底起泡，天亮时正好站在广场上。</p>
+        <p style="color:#888; font-style:italic; margin-top:0.5rem;">不是每次冲动都有结果，但这一趟让我知道，想到就干，大概率不亏。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 联系 -->
+<section id="contact">
+  <div class="container" style="text-align:center;">
+    <div class="chapter-number">06</div>
+    <h2>联系</h2>
+    <p>📧 m17752876104@163.com</p>
+    <p>📱 177528786104</p>
+    <a href="https://xiaocaicccc.github.io/resume/resume.pdf" target="_blank" rel="noopener noreferrer" class="detail-btn" style="display:inline-block; margin-top:1rem;">查看简历 →</a>
+    <p style="color:#aaa; margin-top:2rem; font-size:0.9rem;">这页简历本身就是一次人+AI协作实验，问右下角那位了解更多。</p>
+  </div>
+</section>
+
+<!-- 模态层 -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-content">
+    <button class="modal-close" id="modalClose">&times;</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<!-- AI 助手按钮 -->
+<button class="ai-btn" id="aiBtn">💬</button>
+<!-- 编辑模式开关 -->
+<button class="edit-btn" id="editToggleBtn">✎</button>
+
+<!-- AI 聊天面板 -->
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header">🤖 小武的 AI 分身 · 有模有样</div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="quick-btns">
+    <button class="quick-btn" data-q="聊聊你的项目">聊聊你的项目</button>
+    <button class="quick-btn" data-q="凭什么打动我？">凭什么打动我？</button>
+    <button class="quick-btn" data-q="这个网页怎么做的？">这个网页怎么做的？</button>
+    <button class="quick-btn" data-q="简历之外的故事">简历之外的故事</button>
+  </div>
+  <div class="chat-input-area">
+    <input type="text" id="chatInput" placeholder="问点什么吧..." />
+    <button id="chatSend">➤</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+document.addEventListener('DOMContentLoaded', function() {
+
+  // ========== 1. 导航联动 ==========
+  const dots = document.querySelectorAll('.nav-dot');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        dots.forEach(d => d.classList.remove('active'));
+        const active = document.querySelector(`.nav-dot[data-target="${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('section[id]').forEach(s => observer.observe(s));
+  dots.forEach(d => d.addEventListener('click', () => {
+    document.getElementById(d.dataset.target).scrollIntoView({ behavior: 'smooth' });
+  }));
+
+  // ========== 2. 横滑卡片 ==========
+  const scrollContainer = document.getElementById('projectCards');
+  if (scrollContainer) {
+    scrollContainer.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      scrollContainer.scrollLeft += e.deltaY;
+    });
+    let isDown = false, startX, scrollLeft;
+    scrollContainer.addEventListener('mousedown', (e) => {
+      isDown = true; startX = e.pageX - scrollContainer.offsetLeft;
+      scrollLeft = scrollContainer.scrollLeft;
+    });
+    scrollContainer.addEventListener('mouseleave', () => isDown = false);
+    scrollContainer.addEventListener('mouseup', () => isDown = false);
+    scrollContainer.addEventListener('mousemove', (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      scrollContainer.scrollLeft = scrollLeft - (e.pageX - scrollContainer.offsetLeft - startX) * 2;
+    });
+  }
+
+  // ========== 3. 模态层 ==========
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalBody = document.getElementById('modalBody');
+  const modalClose = document.getElementById('modalClose');
+  const details = {
+    'ai-proto': {
+      title: 'AI 应用原型系列',
+      body: '<p>使用 Code Buddy 在 Vibe Coding 模式下开发的三个应用原型：</p><ul><li><strong>健身四分化训练助手：</strong>自动生成训练计划，追踪进度</li><li><strong>家庭厨房点单系统：</strong>简化家庭餐饮管理</li><li><strong>初中生学习助手：</strong>辅助学习与任务管理</li></ul><p>技术栈：Code Buddy, Vibe Coding</p>'
+    },
+    'a2a-article': {
+      title: '《对 Second Me 的思考》',
+      body: '<p>一篇约4000字的技术思辨文章，系统梳理了对 A2A 网络的理解。</p><p>从 Agent 孤岛现象切入，探讨了 Personal Agent Space 作为个人 AI 空间的可能性。</p><p><a href="https://xiaocaicccc.github.io/resume/a-second-me-reflection.pdf" target="_blank">📖 阅读全文 PDF →</a></p>'
+    },
+    'dongfeng': {
+      title: '东风车企校企合作项目',
+      body: '<p>主导东风车企与应急管理大学、蓝天救援队的跨界合作。</p><p>搭建了覆盖品牌升级、技术反哺、市场开拓、ESG提升的价值评估体系。</p><p>下阶段：推进车辆改装方案，计划产出首份《猛士车辆效能分析报告》。</p>'
+    },
+    'portfolio-a2a': {
+      title: '《对 Second Me 的思考》长文',
+      body: '<p>同上文，可在线阅读或下载 PDF。</p><p><a href="https://xiaocaicccc.github.io/resume/a-second-me-reflection.pdf" target="_blank">📖 阅读全文 PDF →</a></p>'
+    },
+    'portfolio-screenshots': {
+      title: '项目原型截图合集',
+      body: '<p>包含三个 AI 应用原型的界面截图与说明。</p>'
+    }
+  };
+  document.querySelectorAll('.detail-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.detail;
+      if (details[key]) {
+        modalBody.innerHTML = `<h2>${details[key].title}</h2>${details[key].body}`;
+        modalOverlay.classList.add('active');
+      }
+    });
+  });
+  modalClose.addEventListener('click', () => modalOverlay.classList.remove('active'));
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) modalOverlay.classList.remove('active');
+  });
+
+  // ========== 4. AI 助手 ==========
+  const aiBtn = document.getElementById('aiBtn');
+  const chatPanel = document.getElementById('chatPanel');
+  const chatMessages = document.getElementById('chatMessages');
+  const chatInput = document.getElementById('chatInput');
+  const chatSend = document.getElementById('chatSend');
+  const qa = [
+    { keys:['项目','作品','做过','应用'], ans:'做了三个 AI 应用原型：健身四分化训练助手、家庭厨房点单系统、初中生学习助手。都是用 Vibe Coding 搞的。还有一篇 4000 字 A2A 网络长文，在作品展示区可以下载 PDF。' },
+    { keys:['凭什么','打动','优势','特点'], ans:'管过 15 个团队百来号人，组织过路演和辩论赛，又迷上了 AI Agent。能带人，懂一点技术，还喜欢把经验写出来——这就是我的组合技。' },
+    { keys:['网页','怎么做的','Codex','AI协作'], ans:'你现在看的这页，就是我和 AI 一块卷出来的。从简陋模板开始，反复迭代提示词，加了杂志排版、横滑卡片，最后还把我骑行的故事放了进去。输入 behind the scenes 了解幕后。' },
+    { keys:['behind the scenes','幕后','迭代'], ans:'第一版太简单，第二版加了杂志排版和动画，第三版做成了横滑卡片和 AI 助手，第四版把骑行 318 和夜行天安门的故事也放进来了。' },
+    { keys:['骑行','318','拉萨'], ans:'高考完从成都骑 318 到拉萨，24 天，2000 多公里，翻东达山差点断气。但到拉萨那天，觉得这辈子没什么事是干不成的。' },
+    { keys:['夜行','43公里','天安门'], ans:'有天晚上突发奇想，从学校走了 43 公里去天安门看日出。脚底磨出泡，天亮正好站在广场上。想到就干，大概率不亏。' },
+    { keys:['国标','跳舞'], ans:'跳了十年国标，拉丁摩登都能来。很多人都觉得搞技术和跳舞不搭，但我觉得都需要节奏感和刻意练习。' },
+    { keys:['简历','下载','PDF'], ans:'页面底部有“查看简历”按钮，点开就能在线预览我的完整简历。' },
+    { keys:['联系','邮箱','手机'], ans:'邮箱 m17752876104@163.com，手机 177528786104。别犹豫，直接找我。' },
+    { keys:['大学','专业'], ans:'在应急管理大学念勘查技术与工程，但我更像个跨专业动物。' },
+    { keys:['Vibe Coding','Code Buddy'], ans:'Vibe Coding 就是跟着感觉写代码，用 Code Buddy 做 AI 辅助开发。正确的提示词比写代码本身更重要。' }
+  ];
+  function matchQA(input) {
+    const words = input.replace(/[？?，,。.！!]/g,'').split(' ');
+    let best = null, max = 0;
+    qa.forEach(item => {
+      let score = 0;
+      item.keys.forEach(k => words.forEach(w => { if(k.includes(w)||w.includes(k)) score++; }));
+      if (score > max) { max = score; best = item.ans; }
+    });
+    return best || '这题超纲了，建议直接邮箱轰炸本尊：m17752876104@163.com';
+  }
+  function addMsg(text, cls) {
+    const div = document.createElement('div');
+    div.className = `msg ${cls}`; div.textContent = text;
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return div;
+  }
+  function aiReply(text) {
+    const div = addMsg('', 'ai');
+    let i = 0;
+    function type() {
+      if (i < text.length) { div.textContent += text.charAt(i); i++; setTimeout(type, 30); }
+    }
+    type();
+  }
+  chatSend.addEventListener('click', () => {
+    const q = chatInput.value.trim();
+    if (!q) return;
+    addMsg(q, 'user'); chatInput.value = '';
+    const ans = matchQA(q);
+    setTimeout(() => aiReply(ans), 300);
+  });
+  chatInput.addEventListener('keypress', e => { if (e.key==='Enter') chatSend.click(); });
+  document.querySelectorAll('.quick-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      addMsg(btn.dataset.q, 'user');
+      setTimeout(() => aiReply(matchQA(btn.dataset.q)), 300);
+    });
+  });
+  aiBtn.addEventListener('click', () => {
+    chatPanel.classList.toggle('open');
+    if (chatPanel.classList.contains('open') && chatMessages.children.length === 0) {
+      setTimeout(() => aiReply('嗨，我是俊武的 AI 分身。你可以问我关于他的经历、技能、项目，或者聊聊骑行和夜行的故事 👋'), 200);
+    }
+  });
+
+  // ========== 5. 编辑模式 ==========
+  const editBtn = document.getElementById('editToggleBtn');
+  let editMode = false;
+  const editableAreas = '#about p, #about .skill-bar + p, #projects .project-card h3, #projects .project-card p, #projects .tag, #experience .timeline-item, #portfolio .portfolio-card h3, #portfolio .portfolio-card p, #beyond .story-card h3, #beyond .story-card p, #contact p';
+  editBtn.addEventListener('click', () => {
+    editMode = !editMode;
+    const elements = document.querySelectorAll(editableAreas);
+    if (editMode) {
+      elements.forEach(el => { el.contentEditable = 'true'; });
+      editBtn.classList.add('active');
+      editBtn.textContent = '✓';
+      showToast('编辑模式已开启，再点✓退出');
+    } else {
+      elements.forEach(el => { el.contentEditable = 'false'; });
+      editBtn.classList.remove('active');
+      editBtn.textContent = '✎';
+      hideToast();
+    }
+  });
+
+  function showToast(msg) {
+    let t = document.getElementById('toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'toast';
+      t.style.position='fixed'; t.style.bottom='80px'; t.style.left='50%';
+      t.style.transform='translateX(-50%)'; t.style.background='rgba(0,0,0,0.7)';
+      t.style.color='#fff'; t.style.padding='0.5rem 1.5rem'; t.style.borderRadius='20px';
+      t.style.fontSize='0.85rem'; t.style.zIndex='3000'; t.style.transition='opacity 0.3s';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    clearTimeout(window.toastTimer);
+    window.toastTimer = setTimeout(() => { t.style.opacity = '0'; }, 2500);
+  }
+  function hideToast() {
+    const t = document.getElementById('toast');
+    if (t) t.style.opacity = '0';
+  }
+
+});
+</script>
+</body>
+</html>
