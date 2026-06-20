@@ -628,25 +628,107 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // ========== 5. 编辑模式 ==========
+  // ========== 5. 编辑模式（升级版：自动保存 + 持久化 + 长按重置） ==========
   const editBtn = document.getElementById('editToggleBtn');
   let editMode = false;
-  const editableAreas = '#about p, #about .skill-bar + p, #projects .project-card h3, #projects .project-card p, #projects .tag, #experience .timeline-item, #portfolio .portfolio-card h3, #portfolio .portfolio-card p, #beyond .story-card h3, #beyond .story-card p, #contact p';
-  editBtn.addEventListener('click', () => {
+  const editableSelector = '#about p, #about .skill-bar + p, #projects .project-card h3, #projects .project-card p, #projects .tag, #experience .timeline-item, #portfolio .portfolio-card h3, #portfolio .portfolio-card p, #beyond .story-card h3, #beyond .story-card p, #contact p';
+  const STORAGE_PREFIX = 'resume-edit-';
+
+  function hashCode(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash).toString(36);
+  }
+
+  function assignEditIds() {
+    const elements = document.querySelectorAll(editableSelector);
+    elements.forEach((el, i) => {
+      if (!el.dataset.editId) {
+        el.dataset.editId = hashCode(el.textContent.trim().substring(0, 100)) + '-' + i;
+      }
+    });
+  }
+
+  function restoreEdits() {
+    const elements = document.querySelectorAll(editableSelector);
+    elements.forEach(el => {
+      if (el.dataset.editId) {
+        const saved = localStorage.getItem(STORAGE_PREFIX + el.dataset.editId);
+        if (saved !== null) {
+          el.innerHTML = saved;
+        }
+      }
+    });
+  }
+
+  function saveEdit(el) {
+    if (el.dataset.editId) {
+      localStorage.setItem(STORAGE_PREFIX + el.dataset.editId, el.innerHTML);
+    }
+  }
+
+  function toggleEditMode() {
     editMode = !editMode;
-    const elements = document.querySelectorAll(editableAreas);
+    const elements = document.querySelectorAll(editableSelector);
     if (editMode) {
       elements.forEach(el => { el.contentEditable = 'true'; });
       editBtn.classList.add('active');
-      editBtn.textContent = '✓';
-      showToast('编辑模式已开启，再点✓退出');
+      editBtn.textContent = '\u2713';
+      showToast('\u7f16\u8f91\u6a21\u5f0f\u5df2\u5f00\u542f\uff0c\u4fee\u6539\u540e\u81ea\u52a8\u4fdd\u5b58');
     } else {
       elements.forEach(el => { el.contentEditable = 'false'; });
       editBtn.classList.remove('active');
-      editBtn.textContent = '✎';
+      editBtn.textContent = '\u270e';
       hideToast();
     }
+  }
+
+  // Blur \u2192 auto-save (capture phase to catch events from contenteditable children)
+  document.addEventListener('blur', function(e) {
+    if (editMode && e.target.dataset.editId && e.target.matches(editableSelector)) {
+      saveEdit(e.target);
+    }
+  }, true);
+
+  // Edit button: click toggles, long-press (2s) resets all edits
+  let longPressTimer = null;
+  let isLongPress = false;
+  function startLongPress() {
+    isLongPress = false;
+    longPressTimer = setTimeout(() => {
+      isLongPress = true;
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(STORAGE_PREFIX)) keys.push(k);
+      }
+      keys.forEach(k => localStorage.removeItem(k));
+      showToast('\u5df2\u6062\u590d\u9ed8\u8ba4\u6587\u5b57');
+      setTimeout(() => location.reload(), 600);
+    }, 2000);
+  }
+  function cancelLongPress() {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+
+  editBtn.addEventListener('mousedown', startLongPress);
+  editBtn.addEventListener('mouseup', cancelLongPress);
+  editBtn.addEventListener('mouseleave', cancelLongPress);
+  editBtn.addEventListener('touchstart', startLongPress, {passive: true});
+  editBtn.addEventListener('touchend', cancelLongPress);
+  editBtn.addEventListener('touchcancel', cancelLongPress);
+  editBtn.addEventListener('click', function(e) {
+    if (isLongPress) return;
+    toggleEditMode();
   });
+
+  // Initialize: assign IDs, restore saved content
+  assignEditIds();
+  restoreEdits();
 
   function showToast(msg) {
     let t = document.getElementById('toast');
@@ -667,9 +749,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function hideToast() {
     const t = document.getElementById('toast');
     if (t) t.style.opacity = '0';
-  }
+  }
 
 });
 </script>
-</body>
-</html>
