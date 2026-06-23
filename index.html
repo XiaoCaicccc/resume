@@ -471,7 +471,7 @@ a{color:var(--primary);text-decoration:none}
           </div>
           <h3 class="work-card__title" data-editable="wc1-title">《对 Second Me 的思考》长文</h3>
           <p class="work-card__desc" data-editable="wc1-desc">约 4000 字的独立深度分析，从 Agent 孤岛到 PA Space，系统梳理 A2A 网络的演进逻辑与未来可能。</p>
-          <a class="work-card__link" href="https://xiaocaicccc.github.io/resume/a-second-me-reflection.pdf" target="_blank" rel="noopener">阅读全文 <span class="work-card__link-arrow">→</span></a>
+          <span class="work-card__link" onclick="window.open('https://xiaocaicccc.github.io/resume/a-second-me-reflection.pdf')" style="cursor:pointer">阅读全文 <span class="work-card__link-arrow">→</span></span>
         </div>
         <div class="work-card">
           <div class="work-card__icon">
@@ -548,10 +548,10 @@ a{color:var(--primary);text-decoration:none}
         <span data-editable="contact-phone">177-5287-86104</span>
       </a>
     </div>
-    <a class="contact__btn" href="https://xiaocaicccc.github.io/resume/resume.pdf" target="_blank" rel="noopener">
+    <span class="contact__btn" onclick="window.open('https://xiaocaicccc.github.io/resume/resume.pdf')" role="button" tabindex="0">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       查看简历
-    </a>
+    </span>
     <p class="contact__note" data-editable="contact-note">这页简历本身就是一次人+AI协作实验，问右下角那位了解更多。</p>
   </div>
 </section>
@@ -817,7 +817,7 @@ function initModal() {
     },
     {
       title: '对 Second Me 的思考：从 Agent 孤岛到 PA Space',
-      body: '<p>约 4000 字的独立深度分析长文，围绕 Second Me 这一 AI Agent 产品展开系统思考。</p><p>文章从当前 AI Agent 生态的「孤岛效应」入手，核心论点是未来 AI Agent 应组成协作网络（A2A Network），每个 Agent 可被其他 Agent 发现、调用和组合，形成「个人助理空间」（PA Space）。</p><p>进一步探讨了 A2A 网络的技术基础、商业可行性和潜在挑战，包括协议标准化、安全隐私、开发者生态建设等。</p><p>全文可阅读 <a href="https://xiaocaicccc.github.io/resume/a-second-me-reflection.pdf" target="_blank" style="color:var(--accent)">PDF 版本</a>。</p>',
+      body: '<p>约 4000 字的独立深度分析长文，围绕 Second Me 这一 AI Agent 产品展开系统思考。</p><p>文章从当前 AI Agent 生态的「孤岛效应」入手，核心论点是未来 AI Agent 应组成协作网络（A2A Network），每个 Agent 可被其他 Agent 发现、调用和组合，形成「个人助理空间」（PA Space）。</p><p>进一步探讨了 A2A 网络的技术基础、商业可行性和潜在挑战，包括协议标准化、安全隐私、开发者生态建设等。</p><p>全文可阅读 PDF 版本。</p>',
       tags: ['A2A 网络','AI Agent','Second Me','PA Space','技术写作']
     },
     {
