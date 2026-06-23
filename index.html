@@ -1,2000 +1,1069 @@
 <!--
   ═══════════════════════════════════════════════════════════════════════
-  蔡俊武 · 个人作品集简历
+  蔡俊武 · 个人作品集简历  v2
   ═══════════════════════════════════════════════════════════════════════
 
-  【设计思路总览】
-  杂志排版 × 互动故事的混合式网页简历。
-  以暖白纸张质感 (#faf8f0) 为基底，深蓝 (#1a3a4a) + 勃艮第红 (#8b2e3f)
-  为色彩锚点，衬线/无衬线字体对比构建阅读节奏。
-  章节水印编号 (01-05) 营造杂志分章仪式感；
-  横向滑动项目卡片与滚动触发时间线创造浏览层次；
-  右下角 AI 助手「小武的数字分身」是"人+AI 协作"能力的显性证明。
+  【设计思路】
+  全屏分页式数字杂志。每页 100vh，右侧圆点导航，滚轮/键盘/触控翻页。
+  暖白纸张质感 (#faf8f0) 为底，深蓝 (#1a3a4a) + 勃艮第红 (#8b2e3f) 为色彩锚点。
+  章节水印编号 (01-06) 营造杂志分章仪式感；首屏无水印。
+  右下角 AI 助手「小菜的AI分身」是"人+AI协作"能力的显性证明。
+  半透明编辑按钮支持 contenteditable 实时修改 + localStorage 持久化。
 
-  【技术选型说明】
-  - 布局: CSS Grid + Flexbox, CSS 自定义属性管理设计 Token
-  - 动画: GSAP 3.12 + ScrollTrigger (滚动动画/时间线绘制)
-           Typed.js 2.1 (打字效果)
-           纯 CSS (微交互: 3D 卡片倾斜、脉冲光晕、悬浮效果)
-  - 字体: Google Fonts — Playfair Display (标题衬线) + Inter (正文无衬线)
-  - 交互: Intersection Observer (章节感知 & 导航高亮)
-           自定义横向滚动 (wheel 转 horizontal / drag / touch)
-  - AI 助手: 纯前端关键词匹配 → 停用词过滤 → 模糊评分 → Typed.js 逐字输出
-  - 响应式: 桌面优先 (1440px) → 平板 (1024px) → 移动端 (375px)
-  - 可访问性: prefers-reduced-motion、语义化 HTML、ARIA 标签
-
-  【AI 助手对话逻辑概要】
-  1. 问答库: JS 对象数组, 每项含 keywords[] + answer + 可选 exact 短语
-  2. 用户输入 → 按标点/空格分词 → 去除常见停用词 → 与问答库关键词做包含匹配
-  3. 匹配加权: 命中关键词总字符长度作为得分, 选最高分回答
-  4. 特殊触发: "behind the scenes" / "幕后" 触发彩蛋长文
-  5. 所有回答通过 Typed.js 逐字输出, 对话历史用数组管理 + DOM 动态渲染
-  6. 无匹配兜底: 幽默引导至邮箱联系
+  【技术选型】
+  - 零外部依赖：不使用任何 CDN，纯 CSS 动画 + 原生 JavaScript
+  - 翻页系统：transform translateY + 滚轮节流 800ms + 键盘 + 触控
+  - 动画：CSS transition/keyframes + Intersection Observer + requestAnimationFrame
+  - 打字效果：原生 JS 逐字符 DOM 插入
+  - AI 问答：关键词分词 → 停用词过滤 → 模糊加权匹配
+  - 编辑模式：contenteditable + localStorage + 长按重置
+  - 响应式：桌面优先，移动端降级为自然滚动
+  - 可访问性：prefers-reduced-motion、语义化 HTML、ARIA 标签
+  - 字体：Playfair Display / Inter（优先本地），Georgia / system-ui 兜底
 
   ═══════════════════════════════════════════════════════════════════════
 -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>蔡俊武 · 作品集简历</title>
-  <meta name="description" content="蔡俊武的个人作品集简历 — 开发者生态实习生申请">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蔡俊武 · 作品集</title>
+<style>
+/* ==================== 0. Design Tokens ==================== */
+:root {
+  --bg: #faf8f0;
+  --bg-card: #ffffff;
+  --primary: #1a3a4a;
+  --accent: #8b2e3f;
+  --text: #3a3a3a;
+  --text-light: #777;
+  --text-lighter: #aaa;
+  --border: #e0ddd4;
+  --border-light: #eceae3;
+  --shadow-sm: 0 2px 12px rgba(26,58,74,0.06);
+  --shadow-md: 0 8px 30px rgba(26,58,74,0.10);
+  --shadow-lg: 0 20px 60px rgba(26,58,74,0.13);
+  --radius: 14px;
+  --radius-sm: 8px;
+  --serif: 'Playfair Display', Georgia, 'Noto Serif SC', 'Times New Roman', serif;
+  --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --ease: cubic-bezier(0.65, 0, 0.35, 1);
+  --page-dur: 0.8s;
+}
 
-  <style>
-    /* ========================================
-       0. CSS Custom Properties (Design Tokens)
-       ======================================== */
-    :root {
-      --bg: #faf8f0;
-      --bg-card: #ffffff;
-      --primary: #1a3a4a;
-      --primary-light: #2a5a72;
-      --accent: #8b2e3f;
-      --accent-light: #a83d52;
-      --text: #2c2c2c;
-      --text-light: #6b6b6b;
-      --text-lighter: #9a9a9a;
-      --border: #e0ddd4;
-      --border-light: #eceae3;
-      --shadow-sm: 0 2px 8px rgba(26, 58, 74, 0.06);
-      --shadow-md: 0 8px 30px rgba(26, 58, 74, 0.10);
-      --shadow-lg: 0 20px 60px rgba(26, 58, 74, 0.12);
-      --radius: 12px;
-      --radius-sm: 8px;
-      --section-py: 120px;
-      --container-px: clamp(24px, 5vw, 120px);
-      --font-serif: 'Playfair Display', 'Noto Serif SC', 'Georgia', serif;
-      --font-sans: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
-      --transition: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    }
+/* ==================== 1. Reset & Base ==================== */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;font-family:var(--sans);font-size:16px;line-height:1.7;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased}
+::selection{background:var(--accent);color:#fff}
+a{color:var(--primary);text-decoration:none}
 
-    /* ========================================
-       1. Reset & Base
-       ======================================== */
-    *, *::before, *::after {
-      margin: 0; padding: 0; box-sizing: border-box;
-    }
-    html {
-      scroll-behavior: smooth;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    body {
-      font-family: var(--font-sans);
-      font-size: 16px;
-      line-height: 1.7;
-      color: var(--text);
-      background: var(--bg);
-      overflow-x: hidden;
-    }
-    ::selection {
-      background: var(--accent);
-      color: #fff;
-    }
-    a {
-      color: var(--primary);
-      text-decoration: none;
-      transition: color var(--transition);
-    }
-    a:hover { color: var(--accent); }
+/* ==================== 2. Page System ==================== */
+#viewport{position:fixed;inset:0;overflow:hidden;z-index:1}
+#wrapper{will-change:transform;transition:transform var(--page-dur) var(--ease)}
+.page{width:100vw;height:100vh;position:relative;overflow:hidden}
+.page__inner{width:100%;height:100%;overflow-y:auto;overflow-x:hidden;padding:60px clamp(24px,6vw,100px);position:relative;z-index:1}
 
-    /* ========================================
-       2. Typography Scale
-       ======================================== */
-    .t-display {
-      font-family: var(--font-serif);
-      font-size: clamp(3rem, 8vw, 6.5rem);
-      font-weight: 900;
-      line-height: 1.1;
-      letter-spacing: -0.02em;
-      color: var(--primary);
-    }
-    .t-h2 {
-      font-family: var(--font-serif);
-      font-size: clamp(2rem, 4vw, 3.2rem);
-      font-weight: 700;
-      line-height: 1.2;
-      color: var(--primary);
-    }
-    .t-h3 {
-      font-family: var(--font-serif);
-      font-size: clamp(1.25rem, 2vw, 1.6rem);
-      font-weight: 700;
-      line-height: 1.3;
-      color: var(--primary);
-    }
-    .t-body {
-      font-size: 1rem;
-      line-height: 1.8;
-      color: var(--text);
-    }
-    .t-small {
-      font-size: 0.875rem;
-      color: var(--text-light);
-    }
-    .t-caption {
-      font-size: 0.8rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--text-lighter);
-      font-weight: 500;
-    }
+/* ==================== 3. Navigation Dots ==================== */
+.nav-dots{position:fixed;right:24px;top:50%;transform:translateY(-50%);z-index:100;display:flex;flex-direction:column;gap:18px}
+.nav-dot{width:10px;height:10px;border-radius:50%;border:2px solid var(--border);background:transparent;cursor:pointer;transition:all .3s ease;position:relative}
+.nav-dot::after{content:attr(data-label);position:absolute;right:22px;top:50%;transform:translateY(-50%);font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;color:var(--text-lighter);white-space:nowrap;opacity:0;transition:opacity .3s;pointer-events:none}
+.nav-dot:hover::after{opacity:1}
+.nav-dot--active{border-color:var(--accent);background:var(--accent);transform:scale(1.35)}
+.nav-dot--active::after{opacity:1;color:var(--accent)}
 
-    /* ========================================
-       3. Layout Utilities
-       ======================================== */
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding-left: var(--container-px);
-      padding-right: var(--container-px);
-    }
-    .section {
-      position: relative;
-      padding: var(--section-py) 0;
-    }
-    .section__number {
-      position: absolute;
-      top: 80px;
-      left: 20px;
-      font-family: var(--font-serif);
-      font-size: clamp(120px, 15vw, 200px);
-      font-weight: 900;
-      color: rgba(26, 58, 74, 0.035);
-      line-height: 1;
-      pointer-events: none;
-      user-select: none;
-      z-index: 0;
-    }
-    .section__header {
-      margin-bottom: 64px;
-      position: relative;
-      z-index: 1;
-    }
-    .section__header .t-caption {
-      display: block;
-      margin-bottom: 12px;
-    }
-    .section__header::after {
-      content: '';
-      display: block;
-      width: 60px;
-      height: 2px;
-      background: var(--accent);
-      margin-top: 20px;
-    }
+/* ==================== 4. Section Watermark ==================== */
+.watermark{position:absolute;top:50px;left:24px;font-family:var(--serif);font-size:clamp(100px,14vw,180px);font-weight:900;color:rgba(26,58,74,.035);line-height:1;pointer-events:none;user-select:none;z-index:0}
 
-    /* ========================================
-       4. Progress Indicator (Right Side)
-       ======================================== */
-    .progress-nav {
-      position: fixed;
-      right: 28px;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 100;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      align-items: center;
-    }
-    .progress-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      border: 2px solid var(--border);
-      background: transparent;
-      cursor: pointer;
-      transition: all var(--transition);
-      position: relative;
-    }
-    .progress-dot::after {
-      content: attr(data-label);
-      position: absolute;
-      right: 24px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 0.7rem;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: var(--text-lighter);
-      white-space: nowrap;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-    .progress-dot:hover::after { opacity: 1; }
-    .progress-dot--active {
-      border-color: var(--accent);
-      background: var(--accent);
-      transform: scale(1.3);
-    }
-    .progress-dot--active::after { opacity: 1; color: var(--accent); }
+/* ==================== 5. Page 0: Hero ==================== */
+.hero{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;background:var(--bg)}
+.hero__grid{position:absolute;inset:0;background-image:linear-gradient(rgba(26,58,74,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(26,58,74,.028) 1px,transparent 1px);background-size:72px 72px;animation:gridMove 50s linear infinite}
+@keyframes gridMove{to{background-position:72px 72px}}
+.hero__lines{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.hero__line{position:absolute;width:1px;background:linear-gradient(to bottom,transparent,rgba(26,58,74,.04),transparent);animation:lineDrift 20s ease-in-out infinite}
+.hero__line:nth-child(1){left:20%;height:60%;top:20%;animation-delay:0s;animation-duration:25s}
+.hero__line:nth-child(2){left:45%;height:40%;top:30%;animation-delay:-5s;animation-duration:18s}
+.hero__line:nth-child(3){left:70%;height:55%;top:10%;animation-delay:-10s;animation-duration:22s}
+.hero__line:nth-child(4){left:85%;height:35%;top:40%;animation-delay:-3s;animation-duration:28s}
+@keyframes lineDrift{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-20px) rotate(.5deg)}50%{transform:translateY(10px) rotate(-.3deg)}75%{transform:translateY(-15px) rotate(.4deg)}}
+.hero__content{position:relative;z-index:2;padding:0 20px}
+.hero__name{font-family:var(--serif);font-size:clamp(3rem,9vw,7rem);font-weight:900;color:var(--primary);line-height:1.05;letter-spacing:-.02em;min-height:1.1em;margin-bottom:28px}
+.hero__name .cursor{display:inline;color:var(--accent);animation:blink 1s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+.hero__sub{font-size:clamp(1rem,2vw,1.2rem);font-weight:300;color:var(--text-light);max-width:560px;margin:0 auto;line-height:1.8;opacity:0;transform:translateY(16px);transition:all .8s .2s ease}
+.hero__sub.show{opacity:1;transform:none}
+.hero__sub-line{display:block}
+.hero__scroll{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px;z-index:2;animation:floatY 2.5s ease-in-out infinite}
+@keyframes floatY{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(8px)}}
+.hero__scroll-text{font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-lighter)}
+.hero__scroll-arrow{width:1px;height:36px;background:var(--border);position:relative;overflow:hidden}
+.hero__scroll-arrow::after{content:'';position:absolute;top:-100%;left:0;width:100%;height:100%;background:var(--accent);animation:scrollFill 2.2s ease-in-out infinite}
+@keyframes scrollFill{0%{top:-100%}100%{top:100%}}
 
-    /* ========================================
-       5. Hero Section
-       ======================================== */
-    .hero {
-      position: relative;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      overflow: hidden;
-      background-color: var(--bg);
-    }
-    .hero__canvas {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-      pointer-events: none;
-    }
-    .hero__content {
-      position: relative;
-      z-index: 1;
-      padding: 0 var(--container-px);
-    }
-    .hero__name {
-      font-family: var(--font-serif);
-      font-size: clamp(3.5rem, 10vw, 7rem);
-      font-weight: 900;
-      color: var(--primary);
-      line-height: 1.05;
-      letter-spacing: -0.02em;
-      min-height: 1.2em;
-      margin-bottom: 20px;
-    }
-    .hero__subtitle {
-      font-size: clamp(1rem, 2vw, 1.25rem);
-      font-weight: 300;
-      color: var(--text-light);
-      max-width: 600px;
-      margin: 0 auto 48px;
-      min-height: 2em;
-      line-height: 1.6;
-    }
-    .hero__subtitle .typed-cursor {
-      color: var(--accent);
-    }
-    .hero__scroll {
-      position: absolute;
-      bottom: 40px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      z-index: 1;
-    }
-    .hero__scroll-text {
-      font-size: 0.7rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--text-lighter);
-    }
-    .hero__scroll-line {
-      width: 1px;
-      height: 48px;
-      background: var(--border);
-      position: relative;
-      overflow: hidden;
-    }
-    .hero__scroll-line::after {
-      content: '';
-      position: absolute;
-      top: -100%;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: var(--accent);
-      animation: scrollPulse 2.2s ease-in-out infinite;
-    }
-    @keyframes scrollPulse {
-      0% { top: -100%; }
-      50% { top: 0; }
-      100% { top: 100%; }
-    }
+/* ==================== 6. Page 1: About ==================== */
+.about__grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:start;max-width:1100px;margin:0 auto}
+.about__text{font-size:1.05rem;line-height:1.9;color:var(--text)}
+.about__text p{margin-bottom:18px}
+.about__text p:last-child{margin-bottom:0}
+.about__text em{font-style:normal;color:var(--accent);font-weight:500}
+.skills{display:flex;flex-direction:column;gap:22px}
+.skill-row{display:flex;align-items:center;gap:14px}
+.skill-row__label{width:110px;flex-shrink:0;font-size:.85rem;font-weight:500;color:var(--text);text-align:right}
+.skill-row__bar-track{flex:1;height:6px;background:var(--border-light);border-radius:3px;overflow:hidden}
+.skill-row__bar-fill{height:100%;border-radius:3px;background:var(--primary);width:0%;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.skill-row__bar-fill--accent{background:var(--accent)}
+.skill-row__pct{width:42px;flex-shrink:0;font-size:.82rem;font-weight:600;color:var(--primary);text-align:right;font-variant-numeric:tabular-nums}
 
-    /* ========================================
-       6. About Section
-       ======================================== */
-    .about__grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 80px;
-      align-items: start;
-      position: relative;
-      z-index: 1;
-    }
-    .about__intro {
-      font-size: 1.05rem;
-      line-height: 1.9;
-      color: var(--text);
-    }
-    .about__intro strong {
-      color: var(--primary);
-      font-weight: 600;
-    }
-    .about__quote {
-      margin-top: 40px;
-      padding-left: 20px;
-      border-left: 3px solid var(--accent);
-      font-family: var(--font-serif);
-      font-style: italic;
-      font-size: 1.05rem;
-      color: var(--text-light);
-      line-height: 1.7;
-    }
-    .skills {
-      display: flex;
-      flex-direction: column;
-      gap: 28px;
-    }
-    .skill-item {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-    .skill-item__ring {
-      flex-shrink: 0;
-      width: 64px;
-      height: 64px;
-      position: relative;
-    }
-    .skill-item__ring svg {
-      width: 100%;
-      height: 100%;
-      transform: rotate(-90deg);
-    }
-    .skill-item__ring-bg {
-      fill: none;
-      stroke: var(--border-light);
-      stroke-width: 4;
-    }
-    .skill-item__ring-fill {
-      fill: none;
-      stroke: var(--primary);
-      stroke-width: 4;
-      stroke-linecap: round;
-      stroke-dasharray: 163.36;
-      stroke-dashoffset: 163.36;
-      transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .skill-item__ring-fill--accent {
-      stroke: var(--accent);
-    }
-    .skill-item__value {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--primary);
-    }
-    .skill-item__info {
-      flex: 1;
-    }
-    .skill-item__name {
-      font-weight: 600;
-      font-size: 0.95rem;
-      color: var(--primary);
-      margin-bottom: 4px;
-    }
-    .skill-item__bar-track {
-      width: 100%;
-      height: 4px;
-      background: var(--border-light);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-    .skill-item__bar-fill {
-      height: 100%;
-      background: var(--primary);
-      border-radius: 2px;
-      width: 0%;
-      transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .skill-item__bar-fill--accent { background: var(--accent); }
+/* ==================== 7. Page 2: Projects ==================== */
+.projects__slider{display:flex;gap:28px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scrollbar-width:none;padding:8px 0 24px;cursor:grab;max-width:100%}
+.projects__slider::-webkit-scrollbar{display:none}
+.projects__slider.dragging{cursor:grabbing;scroll-snap-type:none}
+.project-card{flex:0 0 clamp(300px,36vw,420px);scroll-snap-align:start;background:var(--bg-card);border-radius:var(--radius);padding:36px 32px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);transition:transform .35s ease,box-shadow .35s ease;transform-style:preserve-3d;will-change:transform;user-select:none}
+.project-card:hover{transform:perspective(800px) rotateY(-4deg) rotateX(2deg) translateY(-6px);box-shadow:var(--shadow-lg)}
+.project-card__num{font-size:.8rem;color:var(--text-lighter);margin-bottom:14px}
+.project-card__title{font-family:var(--serif);font-size:1.4rem;font-weight:700;color:var(--primary);margin-bottom:12px;line-height:1.3}
+.project-card__desc{font-size:.92rem;color:var(--text-light);line-height:1.7;margin-bottom:22px}
+.project-card__tags{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:24px}
+.project-card__tag{padding:3px 11px;font-size:.72rem;font-weight:500;border-radius:16px;border:1px solid var(--border);color:var(--text-light);background:var(--bg);transition:all .3s}
+.project-card:hover .project-card__tag{border-color:var(--accent);color:var(--accent)}
+.project-card__btn{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:500;color:var(--accent);cursor:pointer;background:none;border:none;padding:0;font-family:var(--sans)}
+.project-card__btn:hover .project-card__btn-arrow{transform:translateX(4px)}
+.project-card__btn-arrow{transition:transform .3s;display:inline-block}
+.projects__hint{text-align:center;margin-top:14px;font-size:.78rem;color:var(--text-lighter);letter-spacing:.04em}
 
-    /* ========================================
-       7. Projects Section (Horizontal Scroll)
-       ======================================== */
-    .projects__slider-wrapper {
-      position: relative;
-      z-index: 1;
-    }
-    .projects__slider {
-      display: flex;
-      gap: 32px;
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      padding: 8px 0 32px;
-      cursor: grab;
-    }
-    .projects__slider::-webkit-scrollbar { display: none; }
-    .projects__slider.dragging { cursor: grabbing; scroll-snap-type: none; }
+/* ==================== 8. Page 3: Experience ==================== */
+.exp{max-width:900px;margin:0 auto}
+.exp__year-block{margin-bottom:48px}
+.exp__year-block:last-child{margin-bottom:0}
+.exp__year-num{font-family:var(--serif);font-size:clamp(3rem,6vw,4.5rem);font-weight:900;color:rgba(26,58,74,.06);line-height:1;margin-bottom:24px;user-select:none}
+.exp__card{background:var(--bg-card);border-radius:var(--radius-sm);padding:24px 28px;box-shadow:var(--shadow-sm);border-left:3px solid var(--primary);margin-bottom:16px;transition:box-shadow .3s}
+.exp__card:last-child{margin-bottom:0}
+.exp__card:hover{box-shadow:var(--shadow-md)}
+.exp__card--2{border-left-color:rgba(26,58,74,.55)}
+.exp__card--3{border-left-color:rgba(26,58,74,.3)}
+.exp__time{display:inline-block;padding:3px 12px;font-size:.72rem;font-weight:600;letter-spacing:.03em;color:#fff;background:var(--accent);border-radius:20px;margin-bottom:10px}
+.exp__role{font-family:var(--serif);font-size:1.1rem;font-weight:700;color:var(--primary);margin-bottom:6px}
+.exp__desc{font-size:.9rem;color:var(--text-light);line-height:1.7}
+.exp__sep{width:40px;height:1px;background:var(--border);margin:32px 0 32px auto}
 
-    .project-card {
-      flex: 0 0 clamp(320px, 38vw, 440px);
-      scroll-snap-align: start;
-      background: var(--bg-card);
-      border-radius: var(--radius);
-      padding: 40px 36px;
-      box-shadow: var(--shadow-sm);
-      border: 1px solid var(--border-light);
-      transition: transform var(--transition), box-shadow var(--transition);
-      transform-style: preserve-3d;
-      will-change: transform;
-      position: relative;
-      user-select: none;
-    }
-    .project-card:hover {
-      transform: perspective(800px) rotateY(-4deg) rotateX(2deg) translateY(-6px);
-      box-shadow: var(--shadow-lg);
-    }
-    .project-card__index {
-      position: absolute;
-      top: 16px;
-      right: 20px;
-      font-family: var(--font-serif);
-      font-size: 0.85rem;
-      color: var(--text-lighter);
-      font-weight: 400;
-    }
-    .project-card__title {
-      font-family: var(--font-serif);
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 14px;
-      line-height: 1.3;
-    }
-    .project-card__desc {
-      font-size: 0.95rem;
-      color: var(--text-light);
-      line-height: 1.7;
-      margin-bottom: 24px;
-    }
-    .project-card__tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 28px;
-    }
-    .project-card__tag {
-      display: inline-block;
-      padding: 4px 12px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      color: var(--text-light);
-      background: var(--bg);
-      transition: all var(--transition);
-    }
-    .project-card:hover .project-card__tag {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-    .project-card__btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--accent);
-      cursor: pointer;
-      background: none;
-      border: none;
-      padding: 0;
-      transition: gap var(--transition);
-    }
-    .project-card__btn:hover { gap: 12px; }
-    .project-card__btn-arrow {
-      display: inline-block;
-      transition: transform var(--transition);
-    }
-    .project-card__btn:hover .project-card__btn-arrow {
-      transform: translateX(4px);
-    }
-    .projects__hint {
-      text-align: center;
-      margin-top: 16px;
-      font-size: 0.8rem;
-      color: var(--text-lighter);
-      letter-spacing: 0.05em;
-    }
+/* ==================== 9. Page 4: Works ==================== */
+.works{max-width:900px;margin:0 auto}
+.works__header{display:flex;align-items:center;gap:20px;margin-bottom:48px}
+.works__icons{display:flex;gap:8px}
+.works__icon{width:14px;height:14px;border-radius:3px}
+.works__icon--blue{background:var(--primary)}
+.works__icon--red{background:var(--accent)}
+.works__cards{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.work-card{background:var(--bg-card);border-radius:var(--radius);padding:36px 32px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);transition:box-shadow .3s,transform .3s}
+.work-card:hover{box-shadow:var(--shadow-md);transform:translateY(-4px)}
+.work-card__icon{margin-bottom:20px;color:var(--primary)}
+.work-card__title{font-family:var(--serif);font-size:1.2rem;font-weight:700;color:var(--primary);margin-bottom:10px}
+.work-card__desc{font-size:.88rem;color:var(--text-light);line-height:1.7;margin-bottom:20px}
+.work-card__link{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:500;color:var(--accent);cursor:pointer;background:none;border:none;padding:0;font-family:var(--sans)}
+.work-card__link:hover .work-card__link-arrow{transform:translateX(4px)}
+.work-card__link-arrow{transition:transform .3s;display:inline-block}
+.works__footer{text-align:center;margin-top:40px;font-size:.85rem;color:var(--text-lighter);font-style:italic}
 
-    /* ========================================
-       8. Timeline Section
-       ======================================== */
-    .timeline {
-      position: relative;
-      z-index: 1;
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    .timeline__line {
-      position: absolute;
-      left: 50%;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: var(--border-light);
-      transform: translateX(-50%);
-    }
-    .timeline__line-fill {
-      position: absolute;
-      left: 50%;
-      top: 0;
-      width: 2px;
-      height: 0%;
-      background: var(--primary);
-      transform: translateX(-50%);
-      will-change: height;
-    }
-    .timeline__item {
-      position: relative;
-      display: flex;
-      align-items: flex-start;
-      margin-bottom: 60px;
-      opacity: 0;
-    }
-    .timeline__item:last-child { margin-bottom: 0; }
-    .timeline__item--left { justify-content: flex-start; padding-right: calc(50% + 40px); }
-    .timeline__item--right { justify-content: flex-end; padding-left: calc(50% + 40px); }
-    .timeline__dot {
-      position: absolute;
-      left: 50%;
-      top: 8px;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      border: 3px solid var(--border);
-      background: var(--bg);
-      transform: translateX(-50%);
-      z-index: 2;
-      transition: all 0.6s ease;
-    }
-    .timeline__dot--active {
-      border-color: var(--accent);
-      background: var(--accent);
-      box-shadow: 0 0 0 4px rgba(139, 46, 63, 0.15);
-    }
-    .timeline__content {
-      background: var(--bg-card);
-      border-radius: var(--radius-sm);
-      padding: 28px 28px 24px;
-      box-shadow: var(--shadow-sm);
-      border: 1px solid var(--border-light);
-      width: 100%;
-    }
-    .timeline__date {
-      font-size: 0.78rem;
-      font-weight: 500;
-      color: var(--accent);
-      letter-spacing: 0.04em;
-      margin-bottom: 8px;
-    }
-    .timeline__role {
-      font-family: var(--font-serif);
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 8px;
-    }
-    .timeline__desc {
-      font-size: 0.9rem;
-      color: var(--text-light);
-      line-height: 1.7;
-    }
+/* ==================== 10. Page 5: Stories ==================== */
+.stories{max-width:1000px;margin:0 auto}
+.stories__cards{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.story-card{background:var(--bg-card);border-radius:var(--radius);padding:36px 32px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);transition:box-shadow .3s}
+.story-card:hover{box-shadow:var(--shadow-md)}
+.story-card__map{margin-bottom:20px;opacity:.7}
+.story-card__title{font-family:var(--serif);font-size:1.2rem;font-weight:700;color:var(--primary);margin-bottom:12px}
+.story-card__text{font-size:.9rem;color:var(--text-light);line-height:1.8}
+.story-card__text p{margin-bottom:14px}
+.story-card__text p:last-child{margin-bottom:0}
+.story-card__highlight{color:var(--text);font-weight:500}
 
-    /* ========================================
-       9. Contact Section
-       ======================================== */
-    .contact {
-      text-align: center;
-      position: relative;
-      z-index: 1;
-    }
-    .contact__links {
-      display: flex;
-      justify-content: center;
-      gap: 40px;
-      margin: 40px 0;
-      flex-wrap: wrap;
-    }
-    .contact__link-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 1rem;
-      color: var(--text-light);
-      transition: color var(--transition);
-    }
-    .contact__link-item:hover { color: var(--accent); }
-    .contact__link-icon {
-      width: 20px;
-      height: 20px;
-      color: var(--primary);
-    }
-    .contact__btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 14px 36px;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius-sm);
-      font-size: 0.9rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all var(--transition);
-      margin-bottom: 48px;
-    }
-    .contact__btn:hover {
-      background: var(--accent);
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-    }
-    .contact__closing {
-      font-family: var(--font-serif);
-      font-style: italic;
-      font-size: 1.05rem;
-      color: var(--text-light);
-      max-width: 520px;
-      margin: 0 auto;
-      line-height: 1.8;
-    }
-    .contact__closing-emoji {
-      display: inline-block;
-      animation: bounceDown 1.5s ease-in-out infinite;
-    }
-    @keyframes bounceDown {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(6px); }
-    }
+/* ==================== 11. Page 6: Contact ==================== */
+.contact{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.contact__title{font-family:var(--serif);font-size:clamp(2rem,4vw,3rem);font-weight:700;color:var(--primary);margin-bottom:40px}
+.contact__links{display:flex;gap:36px;margin-bottom:36px;flex-wrap:wrap;justify-content:center}
+.contact__link{display:flex;align-items:center;gap:10px;font-size:1rem;color:var(--text-light);transition:color .3s}
+.contact__link:hover{color:var(--accent)}
+.contact__link svg{width:18px;height:18px;color:var(--primary);flex-shrink:0}
+.contact__btn{display:inline-flex;align-items:center;gap:8px;padding:13px 32px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);font-size:.9rem;font-weight:500;cursor:pointer;transition:all .3s;font-family:var(--sans);margin-bottom:40px}
+.contact__btn:hover{background:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.contact__btn svg{width:16px;height:16px}
+.contact__note{font-size:.9rem;color:var(--text-lighter);max-width:420px;line-height:1.7}
 
-    /* ========================================
-       10. Project Detail Modal
-       ======================================== */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(26, 58, 74, 0.4);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      z-index: 200;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.4s ease;
-      padding: 24px;
-    }
-    .modal-overlay--active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    .modal {
-      background: var(--bg-card);
-      border-radius: var(--radius);
-      padding: 48px;
-      max-width: 640px;
-      width: 100%;
-      max-height: 80vh;
-      overflow-y: auto;
-      box-shadow: var(--shadow-lg);
-      transform: translateY(24px) scale(0.97);
-      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-    }
-    .modal-overlay--active .modal {
-      transform: translateY(0) scale(1);
-    }
-    .modal__close {
-      position: absolute;
-      top: 20px;
-      right: 24px;
-      width: 36px;
-      height: 36px;
-      border: none;
-      background: none;
-      font-size: 1.5rem;
-      color: var(--text-lighter);
-      cursor: pointer;
-      transition: color var(--transition);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-    }
-    .modal__close:hover { color: var(--accent); background: var(--bg); }
-    .modal__title {
-      font-family: var(--font-serif);
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 20px;
-      padding-right: 40px;
-    }
-    .modal__body {
-      font-size: 0.95rem;
-      color: var(--text);
-      line-height: 1.85;
-    }
-    .modal__body p { margin-bottom: 16px; }
-    .modal__body p:last-child { margin-bottom: 0; }
-    .modal__tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid var(--border-light);
-    }
+/* ==================== 12. Modal ==================== */
+.modal-overlay{position:fixed;inset:0;background:rgba(26,58,74,.35);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .35s;padding:20px}
+.modal-overlay--open{opacity:1;pointer-events:auto}
+.modal{background:var(--bg-card);border-radius:var(--radius);padding:44px;max-width:620px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:var(--shadow-lg);transform:translateY(20px) scale(.97);transition:transform .4s ease}
+.modal-overlay--open .modal{transform:none}
+.modal__close{position:absolute;top:16px;right:20px;width:34px;height:34px;border:none;background:none;font-size:1.3rem;color:var(--text-lighter);cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all .3s}
+.modal__close:hover{color:var(--accent);background:var(--bg)}
+.modal__title{font-family:var(--serif);font-size:1.5rem;font-weight:700;color:var(--primary);margin-bottom:20px;padding-right:36px}
+.modal__body{font-size:.92rem;color:var(--text);line-height:1.85}
+.modal__body p{margin-bottom:14px}
+.modal__body p:last-child{margin-bottom:0}
+.modal__tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:18px;padding-top:18px;border-top:1px solid var(--border-light)}
 
-    /* ========================================
-       11. AI Assistant
-       ======================================== */
-    .ai-assistant {
-      position: fixed;
-      bottom: 28px;
-      right: 28px;
-      z-index: 150;
-    }
-    .ai-toggle {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      border: 2px solid var(--primary);
-      background: var(--bg-card);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: var(--shadow-md);
-      transition: all var(--transition);
-      position: relative;
-      z-index: 2;
-    }
-    .ai-toggle:hover {
-      transform: scale(1.08);
-      box-shadow: var(--shadow-lg);
-    }
-    .ai-toggle__icon {
-      width: 24px;
-      height: 24px;
-      color: var(--primary);
-    }
-    .ai-toggle__pulse {
-      position: absolute;
-      inset: -4px;
-      border-radius: 50%;
-      border: 2px solid var(--accent);
-      opacity: 0;
-      animation: aiPulse 2.5s ease-in-out infinite;
-    }
-    .ai-toggle__pulse:nth-child(2) { animation-delay: 0.8s; }
-    @keyframes aiPulse {
-      0% { transform: scale(1); opacity: 0.5; }
-      100% { transform: scale(1.6); opacity: 0; }
-    }
+/* ==================== 13. AI Assistant ==================== */
+.ai{position:fixed;bottom:24px;right:24px;z-index:150;display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+.ai__toggle{width:52px;height:52px;border-radius:50%;border:2px solid var(--primary);background:var(--bg-card);cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md);transition:all .3s;position:relative;flex-shrink:0}
+.ai__toggle:hover{transform:scale(1.08);box-shadow:var(--shadow-lg)}
+.ai__toggle svg{width:22px;height:22px;color:var(--primary)}
+.ai__pulse{position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--accent);opacity:0;animation:pulse 2.8s ease-in-out infinite}
+.ai__pulse:nth-child(2){animation-delay:.9s}
+@keyframes pulse{0%{transform:scale(1);opacity:.4}100%{transform:scale(1.7);opacity:0}}
+.ai__panel{width:330px;height:440px;background:var(--bg-card);border:2px solid var(--primary);border-radius:var(--radius);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;overflow:hidden;opacity:0;pointer-events:none;transform:translateY(10px) scale(.95);transition:all .3s ease}
+.ai__panel--open{opacity:1;pointer-events:auto;transform:none}
+.ai__header{padding:14px 18px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;background:var(--bg)}
+.ai__name{font-weight:600;font-size:.85rem;color:var(--primary)}
+.ai__status{font-size:.68rem;color:#4caf50;display:flex;align-items:center;gap:4px}
+.ai__status::before{content:'';width:6px;height:6px;border-radius:50%;background:#4caf50}
+.ai__close{width:28px;height:28px;border:none;background:none;font-size:1.1rem;color:var(--text-lighter);cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all .3s}
+.ai__close:hover{color:var(--accent);background:var(--border-light)}
+.ai__msgs{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin;scrollbar-color:var(--border-light) transparent}
+.ai-msg{max-width:88%;padding:9px 13px;border-radius:10px;font-size:.82rem;line-height:1.65;word-break:break-word}
+.ai-msg--bot{align-self:flex-start;background:var(--bg);color:var(--text);border:1px solid var(--border-light);border-bottom-left-radius:3px}
+.ai-msg--user{align-self:flex-end;background:var(--primary);color:#fff;border-bottom-right-radius:3px}
+.ai-msg .typing-cursor{display:inline;color:var(--accent);animation:blink 1s step-end infinite}
+.ai__quick{padding:0 18px 10px;display:flex;flex-direction:column;gap:5px}
+.ai-qbtn{padding:7px 12px;border:1px solid var(--border);border-radius:16px;background:transparent;font-size:.74rem;color:var(--text-light);cursor:pointer;text-align:left;transition:all .3s;line-height:1.4;font-family:var(--sans)}
+.ai-qbtn:hover{border-color:var(--accent);color:var(--accent);background:rgba(139,46,63,.03)}
+.ai__input-row{padding:10px 14px;border-top:1px solid var(--border-light);display:flex;gap:7px;background:var(--bg)}
+.ai__input{flex:1;border:1px solid var(--border);border-radius:18px;padding:9px 14px;font-size:.82rem;font-family:var(--sans);color:var(--text);background:var(--bg-card);outline:none;transition:border-color .3s}
+.ai__input:focus{border-color:var(--primary)}
+.ai__send{width:36px;height:36px;border-radius:50%;border:none;background:var(--primary);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .3s}
+.ai__send:hover{background:var(--accent);transform:scale(1.05)}
+.ai__send svg{width:16px;height:16px;fill:currentColor}
 
-    .ai-panel {
-      position: absolute;
-      bottom: 72px;
-      right: 0;
-      width: 340px;
-      height: 460px;
-      background: var(--bg-card);
-      border: 2px solid var(--primary);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow-lg);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      opacity: 0;
-      pointer-events: none;
-      transform: translateY(12px) scale(0.95);
-      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-      z-index: 1;
-    }
-    .ai-panel--active {
-      opacity: 1;
-      pointer-events: auto;
-      transform: translateY(0) scale(1);
-    }
-    .ai-panel__header {
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border-light);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: var(--bg);
-    }
-    .ai-panel__name {
-      font-weight: 600;
-      font-size: 0.9rem;
-      color: var(--primary);
-    }
-    .ai-panel__status {
-      font-size: 0.72rem;
-      color: #4caf50;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .ai-panel__status::before {
-      content: '';
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #4caf50;
-    }
-    .ai-panel__close {
-      width: 28px;
-      height: 28px;
-      border: none;
-      background: none;
-      font-size: 1.2rem;
-      color: var(--text-lighter);
-      cursor: pointer;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all var(--transition);
-    }
-    .ai-panel__close:hover { color: var(--accent); background: var(--border-light); }
-    .ai-panel__messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border-light) transparent;
-    }
-    .ai-msg {
-      max-width: 88%;
-      padding: 10px 14px;
-      border-radius: 12px;
-      font-size: 0.85rem;
-      line-height: 1.65;
-      word-break: break-word;
-    }
-    .ai-msg--bot {
-      align-self: flex-start;
-      background: var(--bg);
-      color: var(--text);
-      border: 1px solid var(--border-light);
-      border-bottom-left-radius: 4px;
-    }
-    .ai-msg--user {
-      align-self: flex-end;
-      background: var(--primary);
-      color: #fff;
-      border-bottom-right-radius: 4px;
-    }
-    .ai-msg .typed-cursor { color: var(--accent); }
-    .ai-panel__quick {
-      padding: 0 20px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .ai-quick-btn {
-      padding: 8px 14px;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      background: transparent;
-      font-size: 0.78rem;
-      color: var(--text-light);
-      cursor: pointer;
-      text-align: left;
-      transition: all var(--transition);
-      line-height: 1.4;
-    }
-    .ai-quick-btn:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: rgba(139, 46, 63, 0.04);
-    }
-    .ai-panel__input-area {
-      padding: 12px 16px;
-      border-top: 1px solid var(--border-light);
-      display: flex;
-      gap: 8px;
-      background: var(--bg);
-    }
-    .ai-panel__input {
-      flex: 1;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 10px 16px;
-      font-size: 0.85rem;
-      font-family: var(--font-sans);
-      color: var(--text);
-      background: var(--bg-card);
-      outline: none;
-      transition: border-color var(--transition);
-    }
-    .ai-panel__input:focus { border-color: var(--primary); }
-    .ai-panel__send {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      border: none;
-      background: var(--primary);
-      color: #fff;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      transition: all var(--transition);
-    }
-    .ai-panel__send:hover { background: var(--accent); transform: scale(1.05); }
+/* ==================== 14. Edit Mode ==================== */
+.edit-btn{width:40px;height:40px;border-radius:50%;border:1px solid var(--border);background:rgba(250,248,240,.6);cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:.15;transition:all .3s;font-size:1.1rem;color:var(--text-lighter);backdrop-filter:blur(4px);flex-shrink:0}
+.edit-btn:hover{opacity:.7;border-color:var(--accent);color:var(--accent)}
+.edit-btn--active{opacity:1;border-color:var(--accent);color:var(--accent);background:rgba(139,46,63,.08)}
+.edit-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-60px);background:var(--primary);color:#fff;padding:10px 24px;border-radius:20px;font-size:.8rem;z-index:300;transition:transform .4s ease;pointer-events:none;white-space:nowrap}
+.edit-toast.show{transform:translateX(-50%) translateY(0)}
+[data-editable]{outline:none;transition:background .3s}
+.edit-mode [data-editable]:focus{background:rgba(139,46,63,.04);border-radius:4px}
 
-    /* ========================================
-       12. Responsive Design
-       ======================================== */
-    @media (max-width: 1024px) {
-      .about__grid { gap: 48px; }
-      .section-py { padding: 80px 0; }
-    }
-    @media (max-width: 768px) {
-      :root {
-        --section-py: 80px;
-      }
-      .progress-nav { display: none; }
-      .about__grid {
-        grid-template-columns: 1fr;
-        gap: 48px;
-      }
-      .projects__slider {
-        flex-direction: column;
-        overflow-x: visible;
-        scroll-snap-type: none;
-        cursor: default;
-        gap: 20px;
-      }
-      .project-card {
-        flex: none;
-        width: 100%;
-      }
-      .project-card:hover {
-        transform: none;
-        box-shadow: var(--shadow-md);
-      }
-      .projects__hint { display: none; }
-      .timeline__line,
-      .timeline__line-fill { left: 16px; }
-      .timeline__item--left,
-      .timeline__item--right {
-        padding-left: 48px;
-        padding-right: 0;
-        justify-content: flex-start;
-      }
-      .timeline__dot { left: 16px; }
-      .contact__links { flex-direction: column; align-items: center; gap: 20px; }
-      .ai-panel {
-        width: calc(100vw - 24px);
-        right: -8px;
-        height: 400px;
-      }
-      .ai-assistant { bottom: 16px; right: 16px; }
-      .section__number { font-size: 100px; top: 40px; left: 10px; }
-      .modal { padding: 32px 24px; }
-    }
-    @media (max-width: 480px) {
-      .hero__name { font-size: 2.8rem; }
-      .skill-item__ring { width: 52px; height: 52px; }
-    }
+/* ==================== 15. Responsive ==================== */
+@media(max-width:1024px){
+  .about__grid{gap:40px}
+  .page__inner{padding:48px clamp(20px,5vw,60px)}
+}
+@media(max-width:768px){
+  .nav-dots{right:14px;gap:14px}
+  .nav-dot{width:8px;height:8px}
+  .nav-dot::after{display:none}
+  .about__grid{grid-template-columns:1fr;gap:36px}
+  .projects__slider{flex-direction:column;overflow-x:visible;scroll-snap-type:none;cursor:default;gap:16px}
+  .project-card{flex:none;width:100%}
+  .project-card:hover{transform:none;box-shadow:var(--shadow-md)}
+  .projects__hint{display:none}
+  .exp__card{padding:20px}
+  .works__cards,.stories__cards{grid-template-columns:1fr;gap:20px}
+  .ai__panel{width:calc(100vw - 20px);right:0;height:380px}
+  .ai{bottom:14px;right:14px}
+  .watermark{font-size:80px;top:30px;left:14px}
+  .modal{padding:28px 22px}
+}
+@media(max-width:480px){
+  .hero__name{font-size:2.8rem}
+  .skill-row__label{width:80px;font-size:.78rem}
+  .contact__links{flex-direction:column;align-items:center;gap:16px}
+}
 
-    /* ========================================
-       13. Accessibility & Motion
-       ======================================== */
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-      }
-      html { scroll-behavior: auto; }
-      .skill-item__ring-fill,
-      .skill-item__bar-fill {
-        transition-duration: 0.01ms !important;
-      }
-    }
-  </style>
+/* ==================== 16. Reduced Motion ==================== */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .skill-row__bar-fill{transition-duration:.01ms!important}
+}
+</style>
 </head>
 <body>
 
-  <!-- ========== Progress Navigation ========== -->
-  <nav class="progress-nav" aria-label="章节导航">
-    <button class="progress-dot progress-dot--active" data-target="hero" data-label="首页" aria-label="跳转到首页"></button>
-    <button class="progress-dot" data-target="about" data-label="关于" aria-label="跳转到关于我"></button>
-    <button class="progress-dot" data-target="projects" data-label="项目" aria-label="跳转到项目作品"></button>
-    <button class="progress-dot" data-target="timeline" data-label="经历" aria-label="跳转到经历"></button>
-    <button class="progress-dot" data-target="contact" data-label="联系" aria-label="跳转到联系"></button>
-  </nav>
+<!-- ======== Viewport & Page Wrapper ======== -->
+<div id="viewport">
+<div id="wrapper">
 
-  <!-- ========== Section 1: Hero ========== -->
-  <section class="hero section" id="hero">
-    <canvas class="hero__canvas" id="heroCanvas"></canvas>
-    <div class="hero__content">
-      <h1 class="hero__name" id="heroName"></h1>
-      <p class="hero__subtitle" id="heroSubtitle"></p>
-    </div>
-    <div class="hero__scroll">
-      <span class="hero__scroll-text">向下探索</span>
-      <div class="hero__scroll-line"></div>
-    </div>
-  </section>
-
-  <!-- ========== Section 2: About ========== -->
-  <section class="section" id="about">
-    <span class="section__number">02</span>
-    <div class="container">
-      <header class="section__header">
-        <span class="t-caption">About</span>
-        <h2 class="t-h2">关于我</h2>
-      </header>
-      <div class="about__grid">
-        <div class="about__text">
-          <p class="about__intro">
-            我是<strong>蔡俊武</strong>，应急管理大学勘查技术与工程专业大三在读学生（2023–2027）。
-            虽然学的是地球物理，但真正让我兴奋的「矿藏」是 AI Agent ——
-            我自学并实践 Vibe Coding，用 Code Buddy 独立完成了健身训练助手、家庭点单系统、学习助手三个应用原型，
-            还写了一篇四千多字关于 A2A 网络架构的深度分析文章。
-          </p>
-          <p class="about__intro" style="margin-top:16px;">
-            与此同时，我在校内担任<strong>创新创业中心负责人</strong>，管理 15 个入驻团队、覆盖百余人。
-            从月度路演策划到校企对接，从零基础辩手培养到千人级活动组织，
-            这些经历让我相信：<strong>组织能力和技术热情一旦合流，就能卷起开发者生态的浪花</strong>。
-          </p>
-          <blockquote class="about__quote">
-            「学了三年地球物理，结果发现最好玩的矿产是 AI Agent。」
-          </blockquote>
-        </div>
-        <div class="skills">
-          <div class="skill-item">
-            <div class="skill-item__ring">
-              <svg viewBox="0 0 60 60">
-                <circle class="skill-item__ring-bg" cx="30" cy="30" r="26"></circle>
-                <circle class="skill-item__ring-fill" cx="30" cy="30" r="26" data-percent="90"></circle>
-              </svg>
-              <span class="skill-item__value">90%</span>
-            </div>
-            <div class="skill-item__info">
-              <div class="skill-item__name">组织协调</div>
-              <div class="skill-item__bar-track"><div class="skill-item__bar-fill" data-width="90"></div></div>
-            </div>
-          </div>
-          <div class="skill-item">
-            <div class="skill-item__ring">
-              <svg viewBox="0 0 60 60">
-                <circle class="skill-item__ring-bg" cx="30" cy="30" r="26"></circle>
-                <circle class="skill-item__ring-fill skill-item__ring-fill--accent" cx="30" cy="30" r="26" data-percent="78"></circle>
-              </svg>
-              <span class="skill-item__value">78%</span>
-            </div>
-            <div class="skill-item__info">
-              <div class="skill-item__name">AI 应用开发</div>
-              <div class="skill-item__bar-track"><div class="skill-item__bar-fill skill-item__bar-fill--accent" data-width="78"></div></div>
-            </div>
-          </div>
-          <div class="skill-item">
-            <div class="skill-item__ring">
-              <svg viewBox="0 0 60 60">
-                <circle class="skill-item__ring-bg" cx="30" cy="30" r="26"></circle>
-                <circle class="skill-item__ring-fill" cx="30" cy="30" r="26" data-percent="85"></circle>
-              </svg>
-              <span class="skill-item__value">85%</span>
-            </div>
-            <div class="skill-item__info">
-              <div class="skill-item__name">技术写作</div>
-              <div class="skill-item__bar-track"><div class="skill-item__bar-fill" data-width="85"></div></div>
-            </div>
-          </div>
-          <div class="skill-item">
-            <div class="skill-item__ring">
-              <svg viewBox="0 0 60 60">
-                <circle class="skill-item__ring-bg" cx="30" cy="30" r="26"></circle>
-                <circle class="skill-item__ring-fill" cx="30" cy="30" r="26" data-percent="88"></circle>
-              </svg>
-              <span class="skill-item__value">88%</span>
-            </div>
-            <div class="skill-item__info">
-              <div class="skill-item__name">演讲表达</div>
-              <div class="skill-item__bar-track"><div class="skill-item__bar-fill" data-width="88"></div></div>
-            </div>
-          </div>
-          <div class="skill-item">
-            <div class="skill-item__ring">
-              <svg viewBox="0 0 60 60">
-                <circle class="skill-item__ring-bg" cx="30" cy="30" r="26"></circle>
-                <circle class="skill-item__ring-fill skill-item__ring-fill--accent" cx="30" cy="30" r="26" data-percent="82"></circle>
-              </svg>
-              <span class="skill-item__value">82%</span>
-            </div>
-            <div class="skill-item__info">
-              <div class="skill-item__name">项目管理</div>
-              <div class="skill-item__bar-track"><div class="skill-item__bar-fill skill-item__bar-fill--accent" data-width="82"></div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== Section 3: Projects ========== -->
-  <section class="section" id="projects">
-    <span class="section__number">03</span>
-    <div class="container">
-      <header class="section__header">
-        <span class="t-caption">Projects</span>
-        <h2 class="t-h2">项目作品</h2>
-      </header>
-    </div>
-    <div class="projects__slider-wrapper">
-      <div class="container">
-        <div class="projects__slider" id="projectsSlider">
-
-          <!-- Card 1 -->
-          <article class="project-card">
-            <span class="project-card__index">01 / 03</span>
-            <h3 class="project-card__title">AI 应用原型系列</h3>
-            <p class="project-card__desc">
-              使用 Code Buddy 以 Vibe Coding 方式，在短时间内独立完成了三个不同场景的 AI 应用原型：
-              健身四分化训练助手、家庭厨房点单系统、初中生学习助手。
-            </p>
-            <div class="project-card__tags">
-              <span class="project-card__tag">Code Buddy</span>
-              <span class="project-card__tag">Vibe Coding</span>
-              <span class="project-card__tag">AI 原型</span>
-            </div>
-            <button class="project-card__btn" data-modal="0">
-              查看详情
-              <span class="project-card__btn-arrow">→</span>
-            </button>
-          </article>
-
-          <!-- Card 2 -->
-          <article class="project-card">
-            <span class="project-card__index">02 / 03</span>
-            <h3 class="project-card__title">对 Second Me 的思考</h3>
-            <p class="project-card__desc">
-              撰写约 4000 字的深度分析长文，从 Agent 孤岛问题切入，
-              系统梳理 A2A（Agent-to-Agent）网络架构的演进逻辑与未来可能性。
-            </p>
-            <div class="project-card__tags">
-              <span class="project-card__tag">A2A 网络</span>
-              <span class="project-card__tag">AI Agent</span>
-              <span class="project-card__tag">深度写作</span>
-            </div>
-            <button class="project-card__btn" data-modal="1">
-              查看详情
-              <span class="project-card__btn-arrow">→</span>
-            </button>
-          </article>
-
-          <!-- Card 3 -->
-          <article class="project-card">
-            <span class="project-card__index">03 / 03</span>
-            <h3 class="project-card__title">东风车企校企合作项目</h3>
-            <p class="project-card__desc">
-              主导策划东风车企与应急管理大学、蓝天救援队的「产、学、研、用」跨界合作，
-              搭建企业价值评估体系，推进首批车辆改装方案与成本核算。
-            </p>
-            <div class="project-card__tags">
-              <span class="project-card__tag">项目管理</span>
-              <span class="project-card__tag">校企合作</span>
-              <span class="project-card__tag">ESG</span>
-            </div>
-            <button class="project-card__btn" data-modal="2">
-              查看详情
-              <span class="project-card__btn-arrow">→</span>
-            </button>
-          </article>
-
-        </div>
-        <p class="projects__hint">← 横向滑动或拖拽浏览更多 →</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== Section 4: Timeline ========== -->
-  <section class="section" id="timeline">
-    <span class="section__number">04</span>
-    <div class="container">
-      <header class="section__header">
-        <span class="t-caption">Experience</span>
-        <h2 class="t-h2">经历时间线</h2>
-      </header>
-    </div>
-    <div class="timeline" id="timelineBlock">
-      <div class="timeline__line"></div>
-      <div class="timeline__line-fill" id="timelineFill"></div>
-
-      <div class="timeline__item timeline__item--left">
-        <div class="timeline__dot"></div>
-        <div class="timeline__content">
-          <div class="timeline__date">2024</div>
-          <h3 class="timeline__role">东风车企校企合作项目负责人</h3>
-          <p class="timeline__desc">
-            主导策划东风车企与应急管理大学、蓝天救援队的「产、学、研、用」跨界合作项目。
-            搭建覆盖品牌升级、技术反哺、市场开拓、ESG 提升等多维度的企业价值评估体系。
-            拟定三方合作协议草案，推进首批车辆改装方案设计与成本核算。
-          </p>
-        </div>
-      </div>
-
-      <div class="timeline__item timeline__item--right">
-        <div class="timeline__dot"></div>
-        <div class="timeline__content">
-          <div class="timeline__date">2024 – 至今</div>
-          <h3 class="timeline__role">校级创新创业中心负责人</h3>
-          <p class="timeline__desc">
-            管理 15 个入驻团队（共 100+ 人），策划月度路演及校企对接会。
-            团队数量由 10 个增长至 15 个，有效提升了中心的影响力和活跃度。
-          </p>
-        </div>
-      </div>
-
-      <div class="timeline__item timeline__item--left">
-        <div class="timeline__dot"></div>
-        <div class="timeline__content">
-          <div class="timeline__date">2023 – 2024</div>
-          <h3 class="timeline__role">辩论协会实践部部长</h3>
-          <p class="timeline__desc">
-            培养零基础辩手 2 周内掌握辩论逻辑框架与表达技巧，组织 3 场辩论赛覆盖 400+ 参与人，
-            显著提升了协会的校园影响力和成员辩论水平。
-          </p>
-        </div>
-      </div>
-
-      <div class="timeline__item timeline__item--right">
-        <div class="timeline__dot"></div>
-        <div class="timeline__content">
-          <div class="timeline__date">2023.07 – 2023.08</div>
-          <h3 class="timeline__role">四川蓝海智能装备制造 · 行政专员</h3>
-          <p class="timeline__desc">
-            策划誓师大会，1 周内达成目标获总经理表彰；
-            独立处理员工冲突，1 小时内控制事态，展现出色的危机应对与沟通协调能力。
-          </p>
-        </div>
-      </div>
-
-      <div class="timeline__item timeline__item--left">
-        <div class="timeline__dot"></div>
-        <div class="timeline__content">
-          <div class="timeline__date">2023.06 – 2023.07</div>
-          <h3 class="timeline__role">北京慧理家 · 市场调研</h3>
-          <p class="timeline__desc">
-            分析全国 39 城近 700 份调研数据，为「云连锁」战略提供市场洞察，
-            撰写数据分析报告并输出可执行的战略建议。
-          </p>
-        </div>
-      </div>
-
-      <div class="timeline__item timeline__item--right">
-        <div class="timeline__dot"></div>
-        <div class="timeline__content">
-          <div class="timeline__date">2023 – 至今</div>
-          <h3 class="timeline__role">院办公室学办助管</h3>
-          <p class="timeline__desc">
-            协助统计学生数据，参与「应大青年」校级活动策划（参与人数 500+），
-            在数据整理与大型活动组织中积累了扎实的基础运营能力。
-          </p>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- ========== Section 5: Contact ========== -->
-  <section class="section" id="contact">
-    <span class="section__number">05</span>
-    <div class="container contact">
-      <header class="section__header" style="text-align:center;">
-        <span class="t-caption">Contact</span>
-        <h2 class="t-h2">保持联系</h2>
-      </header>
-      <div class="contact__links">
-        <a href="mailto:m17752876104@163.com" class="contact__link-item">
-          <svg class="contact__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          m17752876104@163.com
-        </a>
-        <a href="tel:177528786104" class="contact__link-item">
-          <svg class="contact__link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          177-5287-86104
-        </a>
-      </div>
-      <button class="contact__btn" onclick="alert('PDF 下载功能演示 — 实际部署时替换为真实 PDF 链接即可')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        下载 PDF 简历
-      </button>
-      <p class="contact__closing">
-        这份简历本身，就是一次人 + AI 协作的实验。<br>
-        想看看幕后？问问右下角那个家伙
-        <span class="contact__closing-emoji">👇</span>
-      </p>
-    </div>
-  </section>
-
-  <!-- ========== Project Detail Modal ========== -->
-  <div class="modal-overlay" id="modalOverlay">
-    <div class="modal" role="dialog" aria-modal="true">
-      <button class="modal__close" id="modalClose" aria-label="关闭">✕</button>
-      <h3 class="modal__title" id="modalTitle"></h3>
-      <div class="modal__body" id="modalBody"></div>
-      <div class="modal__tags" id="modalTags"></div>
+<!-- ==================== PAGE 0: Hero ==================== -->
+<section class="page hero" data-index="0">
+  <div class="hero__grid"></div>
+  <div class="hero__lines">
+    <div class="hero__line"></div><div class="hero__line"></div>
+    <div class="hero__line"></div><div class="hero__line"></div>
+  </div>
+  <div class="hero__content">
+    <h1 class="hero__name" id="heroName"></h1>
+    <div class="hero__sub" id="heroSub">
+      <span class="hero__sub-line" data-editable="hero-sub-1">相信两件事：好奇心和行动力。</span>
+      <span class="hero__sub-line" data-editable="hero-sub-2">其他的一切——项目、经历、作品——都是这两件事的结果。</span>
     </div>
   </div>
+  <div class="hero__scroll">
+    <span class="hero__scroll-text">向下探索</span>
+    <div class="hero__scroll-arrow"></div>
+  </div>
+</section>
 
-  <!-- ========== AI Assistant ========== -->
-  <div class="ai-assistant" id="aiAssistant">
-    <div class="ai-panel" id="aiPanel">
-      <div class="ai-panel__header">
-        <div>
-          <div class="ai-panel__name">小武的 AI 分身</div>
-          <div class="ai-panel__status">在线</div>
+<!-- ==================== PAGE 1: About (01) ==================== -->
+<section class="page" data-index="1">
+  <span class="watermark">01</span>
+  <div class="page__inner" style="display:flex;align-items:center">
+    <div class="about__grid">
+      <div class="about__text">
+        <p data-editable="about-p1"><em>一个想到就去做的人。</em></p>
+        <p data-editable="about-p2">高考完骑了318，24天蹬到拉萨。大学里带过15个团队，管过百来号人，也组织过路演和辩论赛。</p>
+        <p data-editable="about-p3">最近迷上AI Agent。自己学，自己做原型，写过一篇A2A网络的长文。这个网页就是我和AI一块儿搭的，算是近期最满意的一个小作品。</p>
+        <p data-editable="about-p4">目前的状态：带着一点点经验，在找下一个值得投入的事。</p>
+      </div>
+      <div class="skills" id="skillsBlock">
+        <div class="skill-row">
+          <span class="skill-row__label" data-editable="sk-label-1">跨团队组织</span>
+          <div class="skill-row__bar-track"><div class="skill-row__bar-fill" data-pct="92"></div></div>
+          <span class="skill-row__pct" data-counter="92">0%</span>
         </div>
-        <button class="ai-panel__close" id="aiClose" aria-label="关闭对话">✕</button>
-      </div>
-      <div class="ai-panel__messages" id="aiMessages"></div>
-      <div class="ai-panel__quick" id="aiQuick">
-        <button class="ai-quick-btn" data-q="他写过什么有意思的项目？">他写过什么有意思的项目？</button>
-        <button class="ai-quick-btn" data-q="凭什么想做开发者生态？">凭什么想做开发者生态？</button>
-        <button class="ai-quick-btn" data-q="这个网页是怎么做出来的？">这个网页是怎么做出来的？</button>
-      </div>
-      <div class="ai-panel__input-area">
-        <input type="text" class="ai-panel__input" id="aiInput" placeholder="问点什么…" autocomplete="off">
-        <button class="ai-panel__send" id="aiSend" aria-label="发送">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-        </button>
+        <div class="skill-row">
+          <span class="skill-row__label" data-editable="sk-label-2">AI原型开发</span>
+          <div class="skill-row__bar-track"><div class="skill-row__bar-fill skill-row__bar-fill--accent" data-pct="78"></div></div>
+          <span class="skill-row__pct" data-counter="78">0%</span>
+        </div>
+        <div class="skill-row">
+          <span class="skill-row__label" data-editable="sk-label-3">技术写作</span>
+          <div class="skill-row__bar-track"><div class="skill-row__bar-fill" data-pct="80"></div></div>
+          <span class="skill-row__pct" data-counter="80">0%</span>
+        </div>
+        <div class="skill-row">
+          <span class="skill-row__label" data-editable="sk-label-4">公众表达</span>
+          <div class="skill-row__bar-track"><div class="skill-row__bar-fill" data-pct="85"></div></div>
+          <span class="skill-row__pct" data-counter="85">0%</span>
+        </div>
+        <div class="skill-row">
+          <span class="skill-row__label" data-editable="sk-label-5">市场洞察</span>
+          <div class="skill-row__bar-track"><div class="skill-row__bar-fill skill-row__bar-fill--accent" data-pct="75"></div></div>
+          <span class="skill-row__pct" data-counter="75">0%</span>
+        </div>
+        <div class="skill-row">
+          <span class="skill-row__label" data-editable="sk-label-6">危机处理</span>
+          <div class="skill-row__bar-track"><div class="skill-row__bar-fill" data-pct="88"></div></div>
+          <span class="skill-row__pct" data-counter="88">0%</span>
+        </div>
+        <div class="skill-row">
+          <span class="skill-row__label" data-editable="sk-label-7">好奇心与行动力</span>
+          <div class="skill-row__bar-track"><div class="skill-row__bar-fill skill-row__bar-fill--accent" data-pct="95"></div></div>
+          <span class="skill-row__pct" data-counter="95">0%</span>
+        </div>
       </div>
     </div>
-    <button class="ai-toggle" id="aiToggle" aria-label="打开 AI 助手">
-      <span class="ai-toggle__pulse"></span>
-      <span class="ai-toggle__pulse"></span>
-      <svg class="ai-toggle__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 2a7 7 0 0 1 7 7c0 2.5-1.3 4.7-3.2 6l-.8.5V17a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-1.5l-.8-.5A7 7 0 0 1 12 2z"/>
-        <line x1="10" y1="21" x2="14" y2="21"/>
-        <line x1="12" y1="17" x2="12" y2="21"/>
-      </svg>
-    </button>
   </div>
+</section>
 
-  <!-- ========== External Libraries (CDN) ========== -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-  <script src="https://unpkg.com/typed.js@2.1.0/dist/typed.umd.js"></script>
+<!-- ==================== PAGE 2: Projects (02) ==================== -->
+<section class="page" data-index="2">
+  <span class="watermark">02</span>
+  <div class="page__inner">
+    <header style="margin-bottom:40px">
+      <span style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-lighter);font-weight:500">Projects</span>
+      <h2 style="font-family:var(--serif);font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:700;color:var(--primary);margin-top:8px" data-editable="proj-title">项目作品</h2>
+    </header>
+    <div class="projects__slider" id="projSlider">
+      <article class="project-card">
+        <div class="project-card__num">01 / 03</div>
+        <h3 class="project-card__title" data-editable="pc1-title">AI 应用原型系列</h3>
+        <p class="project-card__desc" data-editable="pc1-desc">用 Vibe Coding 方式，借助 Code Buddy 快速完成了健身训练助手、家庭点单系统、学习助手三个 AI 应用原型。</p>
+        <div class="project-card__tags">
+          <span class="project-card__tag">Vibe Coding</span>
+          <span class="project-card__tag">Code Buddy</span>
+          <span class="project-card__tag">AI 原型</span>
+        </div>
+        <button class="project-card__btn" data-modal="0">查看详情 <span class="project-card__btn-arrow">→</span></button>
+      </article>
+      <article class="project-card">
+        <div class="project-card__num">02 / 03</div>
+        <h3 class="project-card__title" data-editable="pc2-title">对 Second Me 的思考</h3>
+        <p class="project-card__desc" data-editable="pc2-desc">约 4000 字的深度分析长文，从 Agent 孤岛问题切入，系统梳理 A2A 网络架构的演进逻辑与未来可能性。</p>
+        <div class="project-card__tags">
+          <span class="project-card__tag">A2A 网络</span>
+          <span class="project-card__tag">AI Agent</span>
+          <span class="project-card__tag">技术写作</span>
+        </div>
+        <button class="project-card__btn" data-modal="1">查看详情 <span class="project-card__btn-arrow">→</span></button>
+      </article>
+      <article class="project-card">
+        <div class="project-card__num">03 / 03</div>
+        <h3 class="project-card__title" data-editable="pc3-title">东风车企校企合作</h3>
+        <p class="project-card__desc" data-editable="pc3-desc">主导策划东风车企与应急管理大学、蓝天救援队的「产、学、研、用」跨界合作项目。</p>
+        <div class="project-card__tags">
+          <span class="project-card__tag">项目管理</span>
+          <span class="project-card__tag">应急管理</span>
+          <span class="project-card__tag">ESG</span>
+        </div>
+        <button class="project-card__btn" data-modal="2">查看详情 <span class="project-card__btn-arrow">→</span></button>
+      </article>
+    </div>
+    <p class="projects__hint">← 拖拽或滚轮横滑浏览 →</p>
+  </div>
+</section>
 
-  <!-- ========== Main Script ========== -->
-  <script>
-  (function() {
-    'use strict';
+<!-- ==================== PAGE 3: Experience (03) ==================== -->
+<section class="page" data-index="3">
+  <span class="watermark">03</span>
+  <div class="page__inner">
+    <header style="margin-bottom:36px">
+      <span style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-lighter);font-weight:500">Experience</span>
+      <h2 style="font-family:var(--serif);font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:700;color:var(--primary);margin-top:8px" data-editable="exp-title">经历</h2>
+    </header>
+    <div class="exp">
+      <!-- 2025 -->
+      <div class="exp__year-block">
+        <div class="exp__year-num">2025</div>
+        <div class="exp__card">
+          <span class="exp__time">2025.8 — 至今</span>
+          <h3 class="exp__role" data-editable="exp-1-role">东风车企校企合作项目负责人</h3>
+          <p class="exp__desc" data-editable="exp-1-desc">主导策划东风车企与应急管理大学、蓝天救援队的「产、学、研、用」跨界合作项目，搭建覆盖品牌升级、技术反哺、市场开拓、ESG 提升等多维度的企业价值评估体系。拟定三方合作协议草案，推进首批车辆改装方案设计与成本核算。</p>
+        </div>
+      </div>
+      <!-- 2024 -->
+      <div class="exp__year-block">
+        <div class="exp__year-num">2024</div>
+        <div class="exp__card exp__card--2">
+          <span class="exp__time">2024.9 — 2025.9</span>
+          <h3 class="exp__role" data-editable="exp-2-role">校级创新创业中心负责人</h3>
+          <p class="exp__desc" data-editable="exp-2-desc">管理 15 个入驻团队（共 100+ 人），策划月度路演及校企对接会，团队数量由 10 个增长至 15 个。</p>
+        </div>
+        <div class="exp__card exp__card--3">
+          <span class="exp__time">2024.7 — 2024.8</span>
+          <h3 class="exp__role" data-editable="exp-3-role">四川蓝海智能装备制造 · 行政专员</h3>
+          <p class="exp__desc" data-editable="exp-3-desc">策划誓师大会 1 周内达成目标获总经理表彰；独立处理员工冲突，1 小时内控制事态。</p>
+        </div>
+        <div class="exp__card exp__card--3">
+          <span class="exp__time">2024.3 — 2024.6</span>
+          <h3 class="exp__role" data-editable="exp-4-role">院办公室学办助管</h3>
+          <p class="exp__desc" data-editable="exp-4-desc">协助统计学生数据，参与「应大青年」校级活动策划（参与人数 500+）。</p>
+        </div>
+      </div>
+      <!-- 2023 -->
+      <div class="exp__year-block">
+        <div class="exp__year-num">2023</div>
+        <div class="exp__card exp__card--3">
+          <span class="exp__time">2023.11 — 2024.1</span>
+          <h3 class="exp__role" data-editable="exp-5-role">北京慧理家 · 市场调研</h3>
+          <p class="exp__desc" data-editable="exp-5-desc">分析全国 39 城近 700 份调研数据，为「云连锁」战略提供市场洞察与可执行建议。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
-    /* ==============================================
-       A. Hero Canvas — "思考中的蓝图" 几何线条
-       ============================================== */
-    function initHeroCanvas() {
-      var canvas = document.getElementById('heroCanvas');
-      if (!canvas) return;
-      var ctx = canvas.getContext('2d');
-      var dpr = Math.min(window.devicePixelRatio || 1, 2);
-      var lines = [];
-      var lineCount = 18;
+<!-- ==================== PAGE 4: Works (04) ==================== -->
+<section class="page" data-index="4">
+  <span class="watermark">04</span>
+  <div class="page__inner" style="display:flex;align-items:center">
+    <div class="works">
+      <div class="works__header">
+        <div class="works__icons">
+          <div class="works__icon works__icon--blue"></div>
+          <div class="works__icon works__icon--blue"></div>
+          <div class="works__icon works__icon--red"></div>
+          <div class="works__icon works__icon--blue"></div>
+        </div>
+        <h2 style="font-family:var(--serif);font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:700;color:var(--primary)" data-editable="works-title">作品展示</h2>
+      </div>
+      <div class="works__cards">
+        <div class="work-card">
+          <div class="work-card__icon">
+            <svg width="40" height="48" viewBox="0 0 40 48" fill="none" stroke="var(--primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2h22a2 2 0 012 2v40a2 2 0 01-2 2H4a2 2 0 01-2-2V4a2 2 0 012-2z"/><path d="M10 14h12M10 20h12M10 26h8M26 2v12l8-6-8-6z"/></svg>
+          </div>
+          <h3 class="work-card__title" data-editable="wc1-title">《对 Second Me 的思考》长文</h3>
+          <p class="work-card__desc" data-editable="wc1-desc">约 4000 字的独立深度分析，从 Agent 孤岛到 PA Space，系统梳理 A2A 网络的演进逻辑与未来可能。</p>
+          <a class="work-card__link" href="https://xiaocaicccc.github.io/resume/a-second-me-reflection.pdf" target="_blank" rel="noopener">阅读全文 <span class="work-card__link-arrow">→</span></a>
+        </div>
+        <div class="work-card">
+          <div class="work-card__icon">
+            <svg width="48" height="40" viewBox="0 0 48 40" fill="none" stroke="var(--primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="24" height="30" rx="2"/><rect x="18" y="2" width="28" height="36" rx="2" opacity=".5"/></svg>
+          </div>
+          <h3 class="work-card__title" data-editable="wc2-title">AI 应用原型合集</h3>
+          <p class="work-card__desc" data-editable="wc2-desc">健身训练助手、家庭厨房点单系统、初中生学习助手——三个不同场景的 Vibe Coding 原型实践。</p>
+          <button class="work-card__link" data-modal="0">查看详情 <span class="work-card__link-arrow">→</span></button>
+        </div>
+      </div>
+      <p class="works__footer" data-editable="works-footer">更多作品正在路上，这个区域会持续生长。</p>
+    </div>
+  </div>
+</section>
 
-      function resize() {
-        var rect = canvas.parentElement.getBoundingClientRect();
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-        canvas.style.width = rect.width + 'px';
-        canvas.style.height = rect.height + 'px';
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      }
+<!-- ==================== PAGE 5: Stories (05) ==================== -->
+<section class="page" data-index="5">
+  <span class="watermark">05</span>
+  <div class="page__inner" style="display:flex;align-items:center">
+    <div class="stories">
+      <header style="margin-bottom:36px">
+        <span style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-lighter);font-weight:500">Beyond Resume</span>
+        <h2 style="font-family:var(--serif);font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:700;color:var(--primary);margin-top:8px" data-editable="stories-title">一些没写进简历的事</h2>
+      </header>
+      <div class="stories__cards">
+        <div class="story-card">
+          <div class="story-card__map">
+            <svg viewBox="0 0 200 70" width="100%" height="70" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="10,60 30,52 50,38 65,44 80,28 95,34 110,18 125,26 140,14 155,20 170,10 185,16 195,6" stroke="var(--primary)" stroke-width="1.5" fill="none"/>
+              <circle cx="195" cy="6" r="3.5" fill="var(--accent)"/>
+              <text x="12" y="66" font-size="6" fill="var(--text-lighter)" font-family="var(--sans)">Chengdu</text>
+              <text x="175" y="4" font-size="6" fill="var(--text-lighter)" font-family="var(--sans)">Lhasa</text>
+            </svg>
+          </div>
+          <h3 class="story-card__title" data-editable="st1-title">24天，成都到拉萨</h3>
+          <div class="story-card__text">
+            <p data-editable="st1-p1"><span class="story-card__highlight">高考完那年夏天，从成都出发，沿318国道一路向西。</span>24天，两千多公里，翻过海拔5000米的东达山，晒脱了几层皮。到拉萨那天，觉得「把一件看起来不可能的事从头做到尾」，原来是这种感觉。</p>
+            <p data-editable="st1-p2">后来做很多事情时，都会想起那个在川藏线上蹬车的自己。</p>
+          </div>
+        </div>
+        <div class="story-card">
+          <div class="story-card__map">
+            <svg viewBox="0 0 200 50" width="100%" height="50" fill="none" stroke-linecap="round">
+              <line x1="10" y1="42" x2="190" y2="12" stroke="var(--primary)" stroke-width="1.5" stroke-dasharray="6,5"/>
+              <circle cx="190" cy="12" r="3.5" fill="var(--accent)"/>
+              <circle cx="10" cy="42" r="2" fill="var(--primary)" opacity=".4"/>
+              <text x="8" y="50" font-size="6" fill="var(--text-lighter)" font-family="var(--sans)">School</text>
+              <text x="170" y="10" font-size="6" fill="var(--text-lighter)" font-family="var(--sans)">Tiananmen</text>
+            </svg>
+          </div>
+          <h3 class="story-card__title" data-editable="st2-title">43公里夜行</h3>
+          <div class="story-card__text">
+            <p data-editable="st2-p1">某个晚上突发奇想，想去看天安门日出。没怎么犹豫，从学校出发，一晚上走了43公里。脚底起泡，天亮时正好站在广场上。</p>
+            <p data-editable="st2-p2"><span class="story-card__highlight">不是每次冲动都有结果，但这一趟让我知道，想到就干，大概率不亏。</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
-      function createLines() {
-        lines = [];
-        var w = canvas.width / dpr;
-        var h = canvas.height / dpr;
-        for (var i = 0; i < lineCount; i++) {
-          lines.push({
-            cx: Math.random() * w,
-            cy: Math.random() * h,
-            angle: Math.random() * Math.PI * 2,
-            length: 80 + Math.random() * 180,
-            speed: 0.0008 + Math.random() * 0.0015,
-            opacity: 0.03 + Math.random() * 0.04
-          });
-        }
-      }
+<!-- ==================== PAGE 6: Contact (06) ==================== -->
+<section class="page" data-index="6">
+  <span class="watermark">06</span>
+  <div class="page__inner contact">
+    <h2 class="contact__title" data-editable="contact-title">保持联系</h2>
+    <div class="contact__links">
+      <a href="mailto:m17752876104@163.com" class="contact__link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        <span data-editable="contact-email">m17752876104@163.com</span>
+      </a>
+      <a href="tel:177528786104" class="contact__link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.11 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <span data-editable="contact-phone">177-5287-86104</span>
+      </a>
+    </div>
+    <a class="contact__btn" href="https://xiaocaicccc.github.io/resume/resume.pdf" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      查看简历
+    </a>
+    <p class="contact__note" data-editable="contact-note">这页简历本身就是一次人+AI协作实验，问右下角那位了解更多。</p>
+  </div>
+</section>
 
-      function draw() {
-        var w = canvas.width / dpr;
-        var h = canvas.height / dpr;
-        ctx.clearRect(0, 0, w, h);
+</div><!-- /wrapper -->
+</div><!-- /viewport -->
 
-        // 静态网格
-        ctx.strokeStyle = 'rgba(26, 58, 74, 0.035)';
-        ctx.lineWidth = 0.5;
-        var gridSize = 70;
-        for (var x = 0; x < w; x += gridSize) {
-          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
-        }
-        for (var y = 0; y < h; y += gridSize) {
-          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
-        }
+<!-- ======== Modal ======== -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" style="position:relative" role="dialog" aria-modal="true">
+    <button class="modal__close" id="modalClose" aria-label="关闭">✕</button>
+    <h3 class="modal__title" id="modalTitle"></h3>
+    <div class="modal__body" id="modalBody"></div>
+    <div class="modal__tags" id="modalTags"></div>
+  </div>
+</div>
 
-        // 漂移的细线
-        for (var i = 0; i < lines.length; i++) {
-          var l = lines[i];
-          l.angle += l.speed;
-          var dx = Math.cos(l.angle) * l.length * 0.5;
-          var dy = Math.sin(l.angle) * l.length * 0.5;
-          ctx.strokeStyle = 'rgba(26, 58, 74, ' + l.opacity + ')';
-          ctx.lineWidth = 0.6;
-          ctx.beginPath();
-          ctx.moveTo(l.cx - dx, l.cy - dy);
-          ctx.lineTo(l.cx + dx, l.cy + dy);
-          ctx.stroke();
-        }
+<!-- ======== AI Assistant ======== -->
+<div class="ai" id="aiBlock">
+  <div class="ai__panel" id="aiPanel">
+    <div class="ai__header">
+      <div>
+        <div class="ai__name">小菜的AI分身 · 有模有样</div>
+        <div class="ai__status">在线</div>
+      </div>
+      <button class="ai__close" id="aiClose" aria-label="关闭">✕</button>
+    </div>
+    <div class="ai__msgs" id="aiMsgs"></div>
+    <div class="ai__quick" id="aiQuick">
+      <button class="ai-qbtn" data-q="聊聊你的项目">聊聊你的项目</button>
+      <button class="ai-qbtn" data-q="凭什么打动我？">凭什么打动我？</button>
+      <button class="ai-qbtn" data-q="这个网页怎么做的？">这个网页怎么做的？</button>
+      <button class="ai-qbtn" data-q="简历之外的故事">简历之外的故事</button>
+    </div>
+    <div class="ai__input-row">
+      <input type="text" class="ai__input" id="aiInput" placeholder="问点什么…" autocomplete="off">
+      <button class="ai__send" id="aiSend" aria-label="发送"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+    </div>
+  </div>
+  <button class="edit-btn" id="editBtn" aria-label="编辑模式" title="编辑模式（长按2秒清除修改）">✎</button>
+  <button class="ai__toggle" id="aiToggle" aria-label="AI 助手">
+    <span class="ai__pulse"></span>
+    <span class="ai__pulse"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.5-1.3 4.7-3.2 6l-.8.5V17a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-1.5l-.8-.5A7 7 0 0 1 12 2z"/><line x1="10" y1="21" x2="14" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+  </button>
+</div>
 
-        requestAnimationFrame(draw);
-      }
+<!-- ======== Edit Toast ======== -->
+<div class="edit-toast" id="editToast">编辑模式已开启，修改后自动保存</div>
 
-      resize();
-      createLines();
-      draw();
-      window.addEventListener('resize', function() { resize(); createLines(); });
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   MODULE A: Page Flip System
+   ============================================================ */
+var pages, wrapper, totalPage, currentPage = 0, isFlipping = false, lastWheel = 0, flipLock = false;
+var THROTTLE = 800;
+var editMode = false;
+
+function initPages() {
+  wrapper = document.getElementById('wrapper');
+  pages = document.querySelectorAll('.page');
+  totalPage = pages.length;
+  updateDots();
+}
+
+function goToPage(idx) {
+  if (idx < 0 || idx >= totalPage || isFlipping || flipLock) return;
+  // 如果编辑模式开启，不翻页
+  if (editMode) return;
+  isFlipping = true;
+  currentPage = idx;
+  wrapper.style.transform = 'translateY(-' + (idx * 100) + 'vh)';
+  updateDots();
+  // 触发该页的动画
+  onPageEnter(idx);
+  setTimeout(function() { isFlipping = false; }, THROTTLE);
+}
+
+function updateDots() {
+  var dots = document.querySelectorAll('.nav-dot');
+  dots.forEach(function(d, i) {
+    d.classList.toggle('nav-dot--active', i === currentPage);
+  });
+}
+
+function onPageEnter(idx) {
+  // 第1页（About）技能条动画
+  if (idx === 1) animateSkills();
+}
+
+/* ============================================================
+   MODULE B: Navigation Dots
+   ============================================================ */
+function initDots() {
+  var labels = ['首页','关于','项目','经历','作品','故事','联系'];
+  var nav = document.createElement('nav');
+  nav.className = 'nav-dots';
+  nav.setAttribute('aria-label', '章节导航');
+  for (var i = 0; i < totalPage; i++) {
+    var btn = document.createElement('button');
+    btn.className = 'nav-dot' + (i === 0 ? ' nav-dot--active' : '');
+    btn.setAttribute('data-target', i);
+    btn.setAttribute('data-label', labels[i] || '');
+    btn.setAttribute('aria-label', '跳转到' + (labels[i] || ''));
+    btn.addEventListener('click', function() { goToPage(parseInt(this.getAttribute('data-target'))); });
+    nav.appendChild(btn);
+  }
+  document.body.appendChild(nav);
+}
+
+/* ============================================================
+   MODULE C: Wheel / Keyboard / Touch Handlers
+   ============================================================ */
+function initControls() {
+  // --- Wheel ---
+  window.addEventListener('wheel', function(e) {
+    if (editMode) return;
+    var now = Date.now();
+    if (isFlipping) { e.preventDefault(); return; }
+
+    var page = pages[currentPage];
+    var inner = page.querySelector('.page__inner');
+    if (inner && inner.scrollHeight > inner.clientHeight + 2) {
+      var atTop = inner.scrollTop <= 2;
+      var atBottom = inner.scrollTop + inner.clientHeight >= inner.scrollHeight - 2;
+      if (e.deltaY > 0 && !atBottom) return;
+      if (e.deltaY < 0 && !atTop) return;
     }
 
-    /* ==============================================
-       B. Typed.js — 首屏打字效果
-       ============================================== */
-    function initHeroTyped() {
-      // 先打名字，延迟打副标题
-      new Typed('#heroName', {
-        strings: ['蔡俊武'],
-        typeSpeed: 180,
-        showCursor: true,
-        cursorChar: '|',
-        onComplete: function() {
-          // 名字打完后，开始打副标题
-          new Typed('#heroSubtitle', {
-            strings: ['把组织能力和技术热情，卷成开发者生态的浪花。'],
-            typeSpeed: 60,
-            startDelay: 400,
-            showCursor: true,
-            cursorChar: '|'
-          });
-        }
-      });
+    if (now - lastWheel < THROTTLE) { e.preventDefault(); return; }
+    lastWheel = now;
+    e.preventDefault();
+    if (e.deltaY > 0) goToPage(currentPage + 1);
+    else if (e.deltaY < 0) goToPage(currentPage - 1);
+  }, { passive: false });
+
+  // --- Keyboard ---
+  window.addEventListener('keydown', function(e) {
+    if (editMode) return;
+    // 如果焦点在输入框内，不拦截
+    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.isContentEditable)) return;
+    if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); goToPage(currentPage + 1); }
+    else if (e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); goToPage(currentPage - 1); }
+  });
+
+  // --- Touch ---
+  var touchY = 0, touchT = 0;
+  window.addEventListener('touchstart', function(e) {
+    touchY = e.touches[0].clientY;
+    touchT = Date.now();
+  }, { passive: true });
+  window.addEventListener('touchend', function(e) {
+    if (editMode) return;
+    var dy = touchY - e.changedTouches[0].clientY;
+    var dt = Date.now() - touchT;
+    if (Math.abs(dy) < 50 || dt > 800) return;
+    if (dy > 0) goToPage(currentPage + 1);
+    else goToPage(currentPage - 1);
+  }, { passive: true });
+}
+
+/* ============================================================
+   MODULE D: Hero Typing Effect (pure JS)
+   ============================================================ */
+function initHero() {
+  var nameEl = document.getElementById('heroName');
+  var subEl = document.getElementById('heroSub');
+  var nameText = '蔡俊武';
+  var cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  cursor.textContent = '|';
+  nameEl.appendChild(cursor);
+
+  var i = 0;
+  function typeName() {
+    if (i < nameText.length) {
+      nameEl.insertBefore(document.createTextNode(nameText[i]), cursor);
+      i++;
+      setTimeout(typeName, 180);
+    } else {
+      // 名字打完，显示副标题
+      setTimeout(function() { subEl.classList.add('show'); }, 300);
     }
+  }
+  setTimeout(typeName, 500);
+}
 
-    /* ==============================================
-       C. Intersection Observer — 章节感知 & 导航
-       ============================================== */
-    function initSectionObserver() {
-      var sections = document.querySelectorAll('.section');
-      var dots = document.querySelectorAll('.progress-dot');
+/* ============================================================
+   MODULE E: Skill Bars Animation
+   ============================================================ */
+var skillsAnimated = false;
+function animateSkills() {
+  if (skillsAnimated) return;
+  skillsAnimated = true;
+  var fills = document.querySelectorAll('.skill-row__bar-fill');
+  var counters = document.querySelectorAll('.skill-row__pct');
+  fills.forEach(function(bar, i) {
+    setTimeout(function() {
+      var pct = bar.getAttribute('data-pct');
+      bar.style.width = pct + '%';
+    }, i * 100);
+  });
+  counters.forEach(function(el, i) {
+    var target = parseInt(el.getAttribute('data-counter'));
+    setTimeout(function() { countUp(el, target, 1000); }, i * 100);
+  });
+}
 
-      var observer = new IntersectionObserver(function(entries) {
-        entries.forEach(function(entry) {
-          if (entry.isIntersecting) {
-            var id = entry.target.id;
-            dots.forEach(function(d) { d.classList.remove('progress-dot--active'); });
-            var activeDot = document.querySelector('.progress-dot[data-target="' + id + '"]');
-            if (activeDot) activeDot.classList.add('progress-dot--active');
-          }
-        });
-      }, { threshold: 0.35 });
+function countUp(el, target, duration) {
+  var start = null;
+  function step(ts) {
+    if (!start) start = ts;
+    var p = Math.min((ts - start) / duration, 1);
+    var eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(target * eased) + '%';
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
 
-      sections.forEach(function(s) { observer.observe(s); });
+/* ============================================================
+   MODULE F: Project Slider (horizontal drag/scroll/touch)
+   ============================================================ */
+function initSlider() {
+  var slider = document.getElementById('projSlider');
+  if (!slider) return;
+  var isDown = false, sx = 0, sl = 0;
 
-      // 点击导航点跳转
-      dots.forEach(function(dot) {
-        dot.addEventListener('click', function() {
-          var target = dot.getAttribute('data-target');
-          var el = document.getElementById(target);
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
-        });
-      });
+  slider.addEventListener('wheel', function(e) {
+    if (window.innerWidth <= 768) return;
+    e.preventDefault();
+    e.stopPropagation(); // 阻止冒泡到页面翻页
+    slider.scrollLeft += e.deltaY;
+  }, { passive: false });
+
+  slider.addEventListener('mousedown', function(e) {
+    if (window.innerWidth <= 768) return;
+    isDown = true; slider.classList.add('dragging');
+    sx = e.pageX - slider.offsetLeft; sl = slider.scrollLeft;
+  });
+  slider.addEventListener('mouseleave', function() { isDown = false; slider.classList.remove('dragging'); });
+  slider.addEventListener('mouseup', function() { isDown = false; slider.classList.remove('dragging'); });
+  slider.addEventListener('mousemove', function(e) {
+    if (!isDown) return;
+    e.preventDefault();
+    var walk = (e.pageX - slider.offsetLeft - sx) * 1.5;
+    slider.scrollLeft = sl - walk;
+  });
+}
+
+/* ============================================================
+   MODULE G: Modal
+   ============================================================ */
+function initModal() {
+  var projectData = [
+    {
+      title: 'AI 应用原型系列',
+      body: '<p>在自学 Vibe Coding 的过程中，使用 Code Buddy 以「对话即开发」的方式，独立完成了三个覆盖不同场景的 AI 应用原型。</p><p><strong>健身四分化训练助手：</strong>根据用户体能数据和训练偏好，自动生成四分化训练计划，支持每日训练进度追踪和调整建议。</p><p><strong>家庭厨房点单系统 Demo：</strong>面向家庭场景的智能点单工具，基于已有食材和口味偏好推荐菜品，简化日常饮食决策。</p><p><strong>初中生学习助手：</strong>结合学科知识点和练习题库，提供个性化学习路径规划和错题分析。</p><p>三个原型覆盖健康管理、日常生活、教育三个高频 AI 应用场景，验证了通过 Vibe Coding 快速交付产品原型的能力。</p>',
+      tags: ['Code Buddy','Vibe Coding','AI 原型','健身','点单','学习助手']
+    },
+    {
+      title: '对 Second Me 的思考：从 Agent 孤岛到 PA Space',
+      body: '<p>约 4000 字的独立深度分析长文，围绕 Second Me 这一 AI Agent 产品展开系统思考。</p><p>文章从当前 AI Agent 生态的「孤岛效应」入手，核心论点是未来 AI Agent 应组成协作网络（A2A Network），每个 Agent 可被其他 Agent 发现、调用和组合，形成「个人助理空间」（PA Space）。</p><p>进一步探讨了 A2A 网络的技术基础、商业可行性和潜在挑战，包括协议标准化、安全隐私、开发者生态建设等。</p><p>全文可阅读 <a href="https://xiaocaicccc.github.io/resume/a-second-me-reflection.pdf" target="_blank" style="color:var(--accent)">PDF 版本</a>。</p>',
+      tags: ['A2A 网络','AI Agent','Second Me','PA Space','技术写作']
+    },
+    {
+      title: '东风车企校企合作项目',
+      body: '<p>作为项目负责人，主导策划东风车企与应急管理大学、蓝天救援队的「产、学、研、用」跨界合作项目。</p><p>搭建覆盖品牌升级、技术反哺、市场开拓、ESG 提升等多维度的企业价值评估体系。拟定三方合作协议草案，推进首批车辆改装方案设计与成本核算。</p><p>计划通过参与京津冀大型应急演练，产出首份《猛士车辆效能分析报告》及高质量传播素材，实现品牌曝光与社会价值双赢。</p>',
+      tags: ['项目管理','校企合作','东风车企','ESG','应急救援']
     }
+  ];
 
-    /* ==============================================
-       D. Skill Bars / Rings — 滚动触发动画
-       ============================================== */
-    function initSkillAnimation() {
-      var aboutSection = document.getElementById('about');
-      var animated = false;
+  var overlay = document.getElementById('modalOverlay');
+  var titleEl = document.getElementById('modalTitle');
+  var bodyEl = document.getElementById('modalBody');
+  var tagsEl = document.getElementById('modalTags');
+  var closeBtn = document.getElementById('modalClose');
 
-      var circumference = 2 * Math.PI * 26; // r=26
+  function open(idx) {
+    var d = projectData[idx]; if (!d) return;
+    titleEl.textContent = d.title;
+    bodyEl.innerHTML = d.body;
+    tagsEl.innerHTML = d.tags.map(function(t){ return '<span class="project-card__tag">'+t+'</span>'; }).join('');
+    overlay.classList.add('modal-overlay--open');
+    flipLock = true;
+  }
+  function close() {
+    overlay.classList.remove('modal-overlay--open');
+    flipLock = false;
+  }
 
-      function animateSkills() {
-        if (animated) return;
-        animated = true;
-        document.querySelectorAll('.skill-item__ring-fill').forEach(function(circle) {
-          var pct = parseInt(circle.getAttribute('data-percent')) || 0;
-          var offset = circumference - (circumference * pct / 100);
-          circle.style.strokeDasharray = circumference;
-          circle.style.strokeDashoffset = offset;
-        });
-        document.querySelectorAll('.skill-item__bar-fill').forEach(function(bar) {
-          var w = bar.getAttribute('data-width') || 0;
-          bar.style.width = w + '%';
-        });
-      }
-
-      var obs = new IntersectionObserver(function(entries) {
-        if (entries[0].isIntersecting) animateSkills();
-      }, { threshold: 0.3 });
-      obs.observe(aboutSection);
-    }
-
-    /* ==============================================
-       E. Projects — 横向滑动（wheel/drag/touch）
-       ============================================== */
-    function initProjectSlider() {
-      var slider = document.getElementById('projectsSlider');
-      if (!slider) return;
-      var isDown = false;
-      var startX = 0;
-      var scrollLeft = 0;
-
-      // 鼠标滚轮转水平滚动
-      slider.addEventListener('wheel', function(e) {
-        // 移动端已改为垂直堆叠，不需要横向
-        if (window.innerWidth <= 768) return;
-        e.preventDefault();
-        slider.scrollLeft += e.deltaY;
-      }, { passive: false });
-
-      // 鼠标拖拽
-      slider.addEventListener('mousedown', function(e) {
-        if (window.innerWidth <= 768) return;
-        isDown = true;
-        slider.classList.add('dragging');
-        startX = e.pageX - slider.offsetLeft;
-        scrollLeft = slider.scrollLeft;
-      });
-      slider.addEventListener('mouseleave', function() { isDown = false; slider.classList.remove('dragging'); });
-      slider.addEventListener('mouseup', function() { isDown = false; slider.classList.remove('dragging'); });
-      slider.addEventListener('mousemove', function(e) {
-        if (!isDown) return;
-        e.preventDefault();
-        var x = e.pageX - slider.offsetLeft;
-        var walk = (x - startX) * 1.5;
-        slider.scrollLeft = scrollLeft - walk;
-      });
-
-      // 触控滑动（移动端自动支持，这里做额外优化）
-      var touchStartX = 0;
-      var touchScrollLeft = 0;
-      slider.addEventListener('touchstart', function(e) {
-        touchStartX = e.touches[0].pageX;
-        touchScrollLeft = slider.scrollLeft;
-      }, { passive: true });
-      slider.addEventListener('touchmove', function(e) {
-        if (window.innerWidth <= 768) return;
-        var dx = e.touches[0].pageX - touchStartX;
-        slider.scrollLeft = touchScrollLeft - dx;
-      }, { passive: true });
-    }
-
-    /* ==============================================
-       F. Project Modal
-       ============================================== */
-    function initProjectModal() {
-      var projectData = [
-        {
-          title: 'AI 应用原型系列',
-          body: '<p>在自学 Vibe Coding 的过程中，我使用 Code Buddy 作为主要开发工具，以「对话即开发」的方式，在较短时间内独立完成了三个覆盖不同场景的 AI 应用原型。</p>' +
-                '<p><strong>健身四分化训练助手：</strong>根据用户输入的体能数据和训练偏好，自动生成四分化训练计划，并支持每日训练进度追踪和调整建议，帮助用户系统化地管理训练周期。</p>' +
-                '<p><strong>家庭厨房点单系统 Demo：</strong>面向家庭场景的智能点单工具，可基于已有食材和口味偏好推荐菜品，简化家庭日常饮食决策流程。</p>' +
-                '<p><strong>初中生学习助手：</strong>结合学科知识点和练习题库，提供个性化学习路径规划和错题分析，帮助学生更高效地掌握薄弱环节。</p>' +
-                '<p>三个原型虽然体量不大，但覆盖了健康管理、日常生活、教育三个高频 AI 应用场景，验证了我通过 Vibe Coding 快速交付产品原型的能力。</p>',
-          tags: ['Code Buddy', 'Vibe Coding', 'AI 原型开发', '健身', '点单系统', '学习助手']
-        },
-        {
-          title: '对 Second Me 的思考：从 Agent 孤岛到 PA Space',
-          body: '<p>这是一篇约 4000 字的独立深度分析文章，围绕 Second Me 这一 AI Agent 产品展开系统性思考。</p>' +
-                '<p>文章从当前 AI Agent 生态中普遍存在的「孤岛效应」入手 —— 大多数 Agent 独立运行、缺乏互操作能力，导致用户需要在多个工具之间反复切换、信息孤岛严重。</p>' +
-                '<p>核心论点是：未来的 AI Agent 不应是孤立的应用，而应组成一个协作网络（A2A Network），每个 Agent 可以被其他 Agent 发现、调用和组合，形成一个类似「个人助理空间」（PA Space）的智能生态。</p>' +
-                '<p>文章进一步探讨了 A2A 网络的技术基础、商业可行性和潜在挑战，包括协议标准化、安全与隐私、以及开发者生态建设等关键议题。这篇文章不仅展示了我对 AI Agent 领域的深度理解，也体现了我将复杂技术概念进行清晰叙述的写作能力。</p>',
-          tags: ['A2A 网络', 'AI Agent', 'Second Me', 'PA Space', '深度写作', '技术分析']
-        },
-        {
-          title: '东风车企校企合作项目',
-          body: '<p>作为项目负责人，我主导策划了东风车企与应急管理大学、蓝天救援队之间的「产、学、研、用」跨界合作项目，立足于「十四五」与「十五五」国家应急管理体系规划背景。</p>' +
-                '<p>项目核心工作包括：搭建覆盖品牌升级、技术反哺、市场开拓、ESG 提升等多维度的企业价值评估体系，为合作方提供可量化的合作价值参考。</p>' +
-                '<p>同时，拟定三方合作协议草案，明确各方权责；推进首批车辆改装方案设计与成本核算，确保项目从规划走向落地。</p>' +
-                '<p>计划通过参与京津冀大型应急演练，产出首份《猛士车辆效能分析报告》及高质量传播素材，实现品牌曝光与社会价值双赢。这个项目锻炼了我从顶层设计到落地执行的完整项目管理能力。</p>',
-          tags: ['项目管理', '校企合作', '东风车企', 'ESG', '应急救援', '跨界合作']
-        }
-      ];
-
-      var overlay = document.getElementById('modalOverlay');
-      var titleEl = document.getElementById('modalTitle');
-      var bodyEl = document.getElementById('modalBody');
-      var tagsEl = document.getElementById('modalTags');
-      var closeBtn = document.getElementById('modalClose');
-
-      // 打开模态窗
-      document.querySelectorAll('.project-card__btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          var idx = parseInt(btn.getAttribute('data-modal'));
-          var data = projectData[idx];
-          if (!data) return;
-          titleEl.textContent = data.title;
-          bodyEl.innerHTML = data.body;
-          tagsEl.innerHTML = data.tags.map(function(t) {
-            return '<span class="project-card__tag">' + t + '</span>';
-          }).join('');
-          overlay.classList.add('modal-overlay--active');
-          document.body.style.overflow = 'hidden';
-        });
-      });
-
-      // 关闭模态窗
-      function closeModal() {
-        overlay.classList.remove('modal-overlay--active');
-        document.body.style.overflow = '';
-      }
-      closeBtn.addEventListener('click', closeModal);
-      overlay.addEventListener('click', function(e) {
-        if (e.target === overlay) closeModal();
-      });
-      document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeModal();
-      });
-    }
-
-    /* ==============================================
-       G. GSAP ScrollTrigger — 时间线动画
-       ============================================== */
-    function initTimelineAnimation() {
-      if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
-      gsap.registerPlugin(ScrollTrigger);
-
-      // 时间线填充线条随滚动增长
-      var fill = document.getElementById('timelineFill');
-      if (fill) {
-        gsap.to(fill, {
-          height: '100%',
-          ease: 'none',
-          scrollTrigger: {
-            trigger: '#timelineBlock',
-            start: 'top 80%',
-            end: 'bottom 20%',
-            scrub: 0.5
-          }
-        });
-      }
-
-      // 每个时间线条目淡入 + 滑入
-      var items = document.querySelectorAll('.timeline__item');
-      items.forEach(function(item, i) {
-        var dir = item.classList.contains('timeline__item--left') ? -40 : 40;
-        gsap.fromTo(item,
-          { opacity: 0, x: dir },
-          {
-            opacity: 1, x: 0, duration: 0.7, ease: 'power2.out',
-            scrollTrigger: { trigger: item, start: 'top 85%', toggleActions: 'play none none reverse' }
-          }
-        );
-
-        // 圆点激活
-        var dot = item.querySelector('.timeline__dot');
-        if (dot) {
-          ScrollTrigger.create({
-            trigger: item,
-            start: 'top 80%',
-            onEnter: function() { dot.classList.add('timeline__dot--active'); },
-            onLeaveBack: function() { dot.classList.remove('timeline__dot--active'); }
-          });
-        }
-      });
-
-      // 各 section header 淡入
-      document.querySelectorAll('.section__header').forEach(function(header) {
-        gsap.fromTo(header,
-          { opacity: 0, y: 30 },
-          {
-            opacity: 1, y: 0, duration: 0.8, ease: 'power2.out',
-            scrollTrigger: { trigger: header, start: 'top 85%', toggleActions: 'play none none none' }
-          }
-        );
-      });
-    }
-
-    /* ==============================================
-       H. AI Assistant — 对话系统
-       ============================================== */
-    function initAIAssistant() {
-      var toggle = document.getElementById('aiToggle');
-      var panel = document.getElementById('aiPanel');
-      var closeBtn = document.getElementById('aiClose');
-      var messagesEl = document.getElementById('aiMessages');
-      var quickEl = document.getElementById('aiQuick');
-      var inputEl = document.getElementById('aiInput');
-      var sendBtn = document.getElementById('aiSend');
-      var chatHistory = [];
-      var isOpen = false;
-      var isTyping = false;
-      var currentTypedInstance = null;
-
-      // --- 问答库 ---
-      var qaDB = [
-        {
-          exact: 'behind the scenes',
-          keywords: ['behind', 'scenes', '幕后', '过程', '怎么做的', '制作过程'],
-          answer: '这事儿说来话长。这份简历网页的诞生，大概经历了三轮「人 + AI」的迭代：\n\n第一轮，俊武给 AI 下了一份超详细的提示词 —— 就是你现在看到的那些关于杂志排版、交互设计、色彩系统的要求。AI 输出了第一版，嗯……怎么说呢，像一件还不错的成衣，但不够合身。\n\n第二轮，他开始逐块打磨：横向滑动卡片的拖拽手感、时间线的滚动动画节奏、AI 助手的对话逻辑和语气……每一处都在「这个感觉对了」和「再调一下」之间反复横跳。AI 是裁缝，他是那个挑剔的顾客。\n\n第三轮，他把所有的细节收束 —— 响应式断点、prefers-reduced-motion、代码注释的措辞。最终你看到的，是一次「提示词工程 × 品味 × 迭代耐心」的实验成品。\n\n他说过一句话我觉得挺准的：「AI 不会替你做决定，但它能把你的想法执行得比你一个人快十倍。」这份网页就是证明。'
-        },
-        {
-          keywords: ['项目', '作品', '做过', '写', 'prototype', '原型', '有意思'],
-          answer: '这哥们儿用 Vibe Coding 攒了几个原型：健身助手、点单系统、学习助手，还有一篇 4000 字的 A2A 网络分析长文。卡片区可以左右划，去看看细节。'
-        },
-        {
-          keywords: ['DevRel', '开发者生态', '为什么', '凭什么', '想做'],
-          answer: '管过 15 个团队百来号人，还迷上了 AI Agent。他觉得把组织力和技术热情搅在一起，帮开发者玩得更溜，就是最性感的事。往上滚，项目卡片可以横着滑。'
-        },
-        {
-          keywords: ['协作', 'AI', '网页', '怎么做的', '做的', '技术'],
-          answer: '巧了，你现在看的这页就是用 AI 辅助开发的。提示词写了三轮，从简陋模板卷成了你现在看到的杂志感。想看幕后过程？输入 "behind the scenes"。'
-        },
-        {
-          keywords: ['经历', '实习', '工作', '简历'],
-          answer: '他的经历跨度还挺大的 —— 从 39 城市场调研数据分析和 1 小时内平息员工冲突的行政专员，到管理百人创新团队的负责人。时间线那块有完整记录，往下滚就看到。'
-        },
-        {
-          keywords: ['第二自我', 'Second Me', 'A2A', 'PA Space', '文章', '长文'],
-          answer: '那篇 4000 字的长文是他对 AI Agent 生态的独立思考 —— 从 Agent 孤岛问题讲到 A2A 协作网络，再延伸到 PA Space 概念。不瞒你说，能把这个话题讲清楚的人不多，他在项目卡片区放了详情。'
-        },
-        {
-          keywords: ['东风', '车企', '合作', '应急'],
-          answer: '东风车企 × 应急管理大学 × 蓝天救援队的三方合作项目，他负责从头策划到协议草案。搭建了一套多维度的企业价值评估体系，还推进了车辆改装方案和成本核算。时间线第一条有惊喜。'
-        },
-        {
-          keywords: ['辩论', '演讲', '表达', '辩手'],
-          answer: '辩论协会实践部部长当的，把零基础的人在两周内练到能上场辩论，组织了三场比赛覆盖 400 多人。他说辩论教会他最重要的事：把复杂的事用一句话说清楚。'
-        },
-        {
-          keywords: ['创新', '创业', '团队', '管理', '中心'],
-          answer: '校级创新创业中心负责人，管理 15 个团队 100 多号人。团队数从 10 个扩到 15 个，月度路演和校企对接都他策划的。他总说「管人和管代码一样，都是系统设计」。'
-        },
-        {
-          keywords: ['健身', '点单', '学习', '助手'],
-          answer: '三个 AI 原型都是用 Code Buddy 通过 Vibe Coding 做的。健身助手能生成四分化训练计划和追踪进度；点单系统基于食材推荐菜品；学习助手提供错题分析和学习路径规划。都是他跟 AI 对着屏幕「聊」出来的。'
-        },
-        {
-          keywords: ['地球物理', '专业', '学校', '大学'],
-          answer: '应急管理大学，勘查技术与工程专业，大三在读。学了三年地球物理，结果最好玩的矿产是 AI Agent。他经常开玩笑说自己是「物理系里最懂 Agent 的人」。'
-        },
-        {
-          keywords: ['你好', 'hi', 'hello', '嗨', '在吗'],
-          answer: '在呢在呢。我是俊武的数字分身，正经简历在上头，不正经的问答在里头。问吧，别问工资就行。'
-        },
-        {
-          keywords: ['技能', '能力', '会什么', '技术栈'],
-          answer: '组织协调（90%）、AI 应用开发（78%）、技术写作（85%）、演讲表达（88%）、项目管理（82%）。关于我那块有可视化环形图，往上翻翻就看到。'
-        }
-      ];
-
-      // 停用词表
-      var stopWords = ['的', '了', '吗', '呢', '啊', '吧', '是', '在', '有', '和', '与', '也', '都', '就', '不', '我', '你', '他', '她', '它', '这', '那', '什么', '怎么', '一个', '可以', '能', '会', '想', '问', '说', '看', '做', '去', '来', '给', '让', '把', '被', '从', '到', '上', '下', '里', '中', '对', '为', '还', '很', '最', '更', '但', '而', '或', '如果', '所以', '因为', '但是', '然后', 'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'do', 'does', 'did', 'have', 'has', 'had', 'can', 'could', 'will', 'would', 'should', 'may', 'might', 'shall', 'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from', 'as', 'into', 'about', 'it', 'this', 'that', 'and', 'or', 'but', 'not', 'no', 'so', 'if', 'me', 'my'];
-
-      // --- 匹配逻辑 ---
-      function findAnswer(input) {
-        var lower = input.toLowerCase().trim();
-
-        // 1. 精确短语匹配（最高优先级）
-        for (var i = 0; i < qaDB.length; i++) {
-          if (qaDB[i].exact && lower.indexOf(qaDB[i].exact) !== -1) {
-            return qaDB[i].answer;
-          }
-        }
-
-        // 2. 分词 + 关键词匹配
-        // 简单分词：按空格和常见标点拆分，同时保留原文做包含判断
-        var words = lower.split(/[\s,，。？！、；;：:""''（）()【】\[\]{}]+/).filter(function(w) { return w.length > 0; });
-        // 过滤停用词
-        var meaningful = words.filter(function(w) { return stopWords.indexOf(w) === -1 && w.length > 0; });
-
-        var bestMatch = null;
-        var bestScore = 0;
-
-        for (var j = 0; j < qaDB.length; j++) {
-          var qa = qaDB[j];
-          var score = 0;
-          // 检查原文包含
-          for (var k = 0; k < qa.keywords.length; k++) {
-            var kw = qa.keywords[k].toLowerCase();
-            if (lower.indexOf(kw) !== -1) {
-              score += kw.length * 2; // 原文包含加权
-            }
-          }
-          // 检查分词匹配
-          for (var m = 0; m < meaningful.length; m++) {
-            for (var n = 0; n < qa.keywords.length; n++) {
-              if (meaningful[m] === qa.keywords[n].toLowerCase() || meaningful[m].indexOf(qa.keywords[n].toLowerCase()) !== -1 || qa.keywords[n].toLowerCase().indexOf(meaningful[m]) !== -1) {
-                score += meaningful[m].length;
-              }
-            }
-          }
-          if (score > bestScore) {
-            bestScore = score;
-            bestMatch = qa;
-          }
-        }
-
-        if (bestMatch && bestScore >= 2) {
-          return bestMatch.answer;
-        }
-
-        // 兜底
-        return '这个问题把我问住了，建议直接邮箱轰炸本尊：m17752876104@163.com';
-      }
-
-      // --- 渲染消息 ---
-      function addMessage(text, type) {
-        var msg = document.createElement('div');
-        msg.className = 'ai-msg ai-msg--' + type;
-        msg.textContent = text;
-        messagesEl.appendChild(msg);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-        chatHistory.push({ type: type, text: text });
-      }
-
-      // --- 打字机效果回复 ---
-      function typeReply(text) {
-        if (isTyping) return;
-        isTyping = true;
-        // 隐藏快捷按钮
-        quickEl.style.display = 'none';
-
-        var msg = document.createElement('div');
-        msg.className = 'ai-msg ai-msg--bot';
-        messagesEl.appendChild(msg);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-
-        // 将换行符转为 <br>
-        var htmlText = text.replace(/\n/g, '<br>');
-
-        if (currentTypedInstance) {
-          currentTypedInstance.destroy();
-        }
-
-        currentTypedInstance = new Typed(msg, {
-          strings: [htmlText],
-          typeSpeed: 25,
-          showCursor: true,
-          cursorChar: '|',
-          onComplete: function() {
-            isTyping = false;
-            chatHistory.push({ type: 'bot', text: text });
-          }
-        });
-      }
-
-      // --- 处理用户输入 ---
-      function handleInput(text) {
-        if (!text.trim() || isTyping) return;
-        text = text.trim();
-        addMessage(text, 'user');
-        inputEl.value = '';
-        var answer = findAnswer(text);
-        // 稍微延迟，模拟思考
-        setTimeout(function() { typeReply(answer); }, 300);
-      }
-
-      // --- 切换面板 ---
-      function openPanel() {
-        isOpen = true;
-        panel.classList.add('ai-panel--active');
-        toggle.style.opacity = '0';
-        toggle.style.pointerEvents = 'none';
-        if (chatHistory.length === 0) {
-          // 发送欢迎语
-          setTimeout(function() {
-            typeReply('我是俊武的数字分身，正经简历在上头，不正经的问答在里头。问吧，别问工资就行。');
-          }, 400);
-        }
-      }
-
-      function closePanel() {
-        isOpen = false;
-        panel.classList.remove('ai-panel--active');
-        toggle.style.opacity = '1';
-        toggle.style.pointerEvents = 'auto';
-        if (currentTypedInstance) {
-          currentTypedInstance.destroy();
-          currentTypedInstance = null;
-        }
-        isTyping = false;
-      }
-
-      toggle.addEventListener('click', openPanel);
-      closeBtn.addEventListener('click', closePanel);
-
-      // 快捷提问
-      quickEl.addEventListener('click', function(e) {
-        if (e.target.classList.contains('ai-quick-btn')) {
-          var q = e.target.getAttribute('data-q');
-          handleInput(q);
-        }
-      });
-
-      // 发送按钮
-      sendBtn.addEventListener('click', function() {
-        handleInput(inputEl.value);
-      });
-
-      // 回车发送
-      inputEl.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-          handleInput(inputEl.value);
-        }
-      });
-    }
-
-    /* ==============================================
-       I. Initialize Everything
-       ============================================== */
-    document.addEventListener('DOMContentLoaded', function() {
-      initHeroCanvas();
-      initHeroTyped();
-      initSectionObserver();
-      initSkillAnimation();
-      initProjectSlider();
-      initProjectModal();
-      initTimelineAnimation();
-      initAIAssistant();
+  document.querySelectorAll('[data-modal]').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      open(parseInt(btn.getAttribute('data-modal')));
     });
+  });
+  closeBtn.addEventListener('click', close);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close(); });
+}
 
-  })();
-  </script>
+/* ============================================================
+   MODULE H: AI Assistant
+   ============================================================ */
+function initAI() {
+  var toggle = document.getElementById('aiToggle');
+  var panel = document.getElementById('aiPanel');
+  var closeBtn = document.getElementById('aiClose');
+  var msgsEl = document.getElementById('aiMsgs');
+  var quickEl = document.getElementById('aiQuick');
+  var inputEl = document.getElementById('aiInput');
+  var sendBtn = document.getElementById('aiSend');
+  var isOpen = false, isTyping = false;
 
+  var qaDB = [
+    { keywords:['项目','作品','做过','写','prototype','原型','有意思'], answer:'用 Vibe Coding 搓了三个原型：健身训练助手（四分化计划+进度追踪）、家庭厨房点单系统、初中生学习助手。还有一个 A2A 网络的 4000 字长文。翻到第2页和第4页可以看到细节。' },
+    { keywords:['打动','凭什么','优势','为什么选','亮点'], answer:'一个能把事从0做到1的人。318骑到拉萨说明执行力和韧性，管15个团队说明组织力，自学AI原型说明学习能力。关键是这三样不是分开的——是同一个人的同一套底层逻辑：想到就干，干到底。' },
+    { keywords:['网页','怎么做的','技术','协作','AI','做的'], answer:'纯 HTML+CSS+JS，没有用任何框架。AI 写了初版代码，然后一轮一轮地调——横向滑动的手感、翻页的节奏、AI 对话的语气，每个细节都是人把关。这就是 DevRel 需要的能力：用 AI 提效，但品味和决策在自己手里。' },
+    { keywords:['故事','骑行','拉萨','318','川藏'], answer:'高考完那年夏天，24天从成都骑到拉萨，翻过海拔5000米的东达山。到拉萨那天他说：「原来把一件看起来不可能的事从头做到尾，是这种感觉。」后来做很多事情都会想起那个蹬车的自己。翻到第5页看完整故事。' },
+    { keywords:['夜行','43','走路','天安门','日出','冲动'], answer:'某天晚上突发奇想，想看天安门日出。从学校出发走了43公里，天亮时正好站在广场上。他说：「不是每次冲动都有结果，但想到就干，大概率不亏。」这个故事在第5页。' },
+    { keywords:['经历','实习','工作','简历'], answer:'管过百人团队，策划过千人活动，处理过员工冲突，分析过39城数据。经历不多但每一段都有实打实的产出。翻到第3页看时间线。' },
+    { keywords:['管理','团队','创新','创业','中心'], answer:'校级创新创业中心负责人，管15个团队100+人，策划月度路演和校企对接。团队数从10个扩到15个。他常说管人和管代码一样，都是系统设计。' },
+    { keywords:['东风','车企','合作','应急','蓝天'], answer:'主导策划东风车企×应急管理大学×蓝天救援队的三方合作。搭了一套企业价值评估体系，拟了协议草案，推了车辆改装方案。时间线2025年那条有详情。' },
+    { keywords:['Second Me','A2A','PA Space','长文','文章','写作'], answer:'4000字独立深度分析，从Agent孤岛讲到A2A协作网络。第4页有PDF链接可以直接读。能把这个话题讲清楚的人不多。' },
+    { keywords:['学校','大学','专业','地球物理','应急管理'], answer:'应急管理大学，勘查技术与工程专业。学了几年地球物理，结果最上头的是AI Agent。他说自己可能是「物理系里最懂Agent的人」。' },
+    { keywords:['技能','能力','会什么','技术栈'], answer:'跨团队组织92%、AI原型开发78%、技术写作80%、公众表达85%、市场洞察75%、危机处理88%。第1页有可视化能力条。哦对了，好奇心和行动力95%，但这个其实不好量化。' },
+    { keywords:['联系','邮箱','电话','手机','怎么找'], answer:'邮箱 m17752876104@163.com，手机 177-5287-86104。翻到最后一页也有链接。' },
+    { keywords:['你好','hi','hello','嗨','在吗'], answer:'在呢。我是小菜的AI分身，正经内容在上面的页面里，不正经的问答在这里。问吧。' }
+  ];
+
+  var stopWords = ['的','了','吗','呢','啊','吧','是','在','有','和','与','也','都','就','不','我','你','他','她','它','这','那','什么','怎么','一个','可以','能','会','想','问','说','看','做','去','来','给','让','把','被','从','到','上','下','里','中','对','为','还','很','最','更','但','而','或','如果','所以','因为','但是','然后','the','a','an','is','are','it','this','that','and','or','but','not','to','of','in','for','on','with','at','do','can','will','my','me'];
+
+  function findAnswer(input) {
+    var lower = input.toLowerCase().trim();
+    var words = lower.split(/[\s,，。？！、；;：:""''（）()\[\]{}]+/).filter(function(w){ return w.length > 0; });
+    var meaningful = words.filter(function(w){ return stopWords.indexOf(w) === -1; });
+    var best = null, bestScore = 0;
+    for (var i = 0; i < qaDB.length; i++) {
+      var qa = qaDB[i], score = 0;
+      for (var j = 0; j < qa.keywords.length; j++) {
+        var kw = qa.keywords[j].toLowerCase();
+        if (lower.indexOf(kw) !== -1) score += kw.length * 2;
+      }
+      for (var m = 0; m < meaningful.length; m++) {
+        for (var n = 0; n < qa.keywords.length; n++) {
+          var k = qa.keywords[n].toLowerCase();
+          if (meaningful[m] === k || meaningful[m].indexOf(k) !== -1 || k.indexOf(meaningful[m]) !== -1) score += meaningful[m].length;
+        }
+      }
+      if (score > bestScore) { bestScore = score; best = qa; }
+    }
+    return (best && bestScore >= 2) ? best.answer : '这个问题把我问住了，建议直接邮件轰炸本尊：m17752876104@163.com';
+  }
+
+  function addMsg(text, type) {
+    var el = document.createElement('div');
+    el.className = 'ai-msg ai-msg--' + type;
+    el.textContent = text;
+    msgsEl.appendChild(el);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+
+  function typeReply(text) {
+    if (isTyping) return;
+    isTyping = true;
+    quickEl.style.display = 'none';
+    var el = document.createElement('div');
+    el.className = 'ai-msg ai-msg--bot';
+    msgsEl.appendChild(el);
+    var cur = document.createElement('span');
+    cur.className = 'typing-cursor';
+    cur.textContent = '|';
+    el.appendChild(cur);
+    var lines = text.split('\n'), li = 0, ci = 0;
+    function step() {
+      if (li >= lines.length) { cur.remove(); isTyping = false; return; }
+      var line = lines[li];
+      if (ci < line.length) {
+        el.insertBefore(document.createTextNode(line[ci]), cur);
+        ci++;
+        msgsEl.scrollTop = msgsEl.scrollHeight;
+        setTimeout(step, 22);
+      } else {
+        if (li < lines.length - 1) el.insertBefore(document.createElement('br'), cur);
+        li++; ci = 0;
+        setTimeout(step, 22);
+      }
+    }
+    step();
+  }
+
+  function handleInput(text) {
+    if (!text.trim() || isTyping) return;
+    text = text.trim();
+    addMsg(text, 'user');
+    inputEl.value = '';
+    setTimeout(function() { typeReply(findAnswer(text)); }, 250);
+  }
+
+  function openPanel() {
+    isOpen = true;
+    panel.classList.add('ai__panel--open');
+    toggle.style.opacity = '0';
+    toggle.style.pointerEvents = 'none';
+    if (msgsEl.children.length === 0) {
+      setTimeout(function() { typeReply('我是小菜的AI分身。正经内容在上面的页面里，不正经的问答在这里。问吧，别问工资。'); }, 350);
+    }
+  }
+  function closePanel() {
+    isOpen = false;
+    panel.classList.remove('ai__panel--open');
+    toggle.style.opacity = '1';
+    toggle.style.pointerEvents = 'auto';
+    // 停止打字
+    isTyping = false;
+  }
+
+  toggle.addEventListener('click', openPanel);
+  closeBtn.addEventListener('click', closePanel);
+  quickEl.addEventListener('click', function(e) {
+    if (e.target.classList.contains('ai-qbtn')) handleInput(e.target.getAttribute('data-q'));
+  });
+  sendBtn.addEventListener('click', function() { handleInput(inputEl.value); });
+  inputEl.addEventListener('keydown', function(e) {
+    e.stopPropagation(); // 防止触发翻页
+    if (e.key === 'Enter') handleInput(inputEl.value);
+  });
+  // 面板内阻止滚轮冒泡
+  panel.addEventListener('wheel', function(e) { e.stopPropagation(); }, { passive: true });
+}
+
+/* ============================================================
+   MODULE I: Edit Mode
+   ============================================================ */
+function initEdit() {
+  var btn = document.getElementById('editBtn');
+  var toast = document.getElementById('editToast');
+  var STORAGE = 'resume_v2_edits';
+  var timer;
+
+  // 加载保存的内容
+  function load() {
+    try {
+      var saved = JSON.parse(localStorage.getItem(STORAGE));
+      if (!saved) return;
+      Object.keys(saved).forEach(function(id) {
+        var el = document.querySelector('[data-editable="' + id + '"]');
+        if (el) el.textContent = saved[id];
+      });
+    } catch(e) {}
+  }
+
+  // 保存单个元素
+  function save(id) {
+    try {
+      var el = document.querySelector('[data-editable="' + id + '"]');
+      if (!el) return;
+      var saved = JSON.parse(localStorage.getItem(STORAGE) || '{}');
+      saved[id] = el.textContent;
+      localStorage.setItem(STORAGE, JSON.stringify(saved));
+    } catch(e) {}
+  }
+
+  // 监听所有可编辑元素的 blur
+  document.querySelectorAll('[data-editable]').forEach(function(el) {
+    el.addEventListener('blur', function() { save(el.getAttribute('data-editable')); });
+  });
+
+  // 切换编辑模式
+  btn.addEventListener('click', function() {
+    editMode = !editMode;
+    btn.classList.toggle('edit-btn--active', editMode);
+    document.body.classList.toggle('edit-mode', editMode);
+    document.querySelectorAll('[data-editable]').forEach(function(el) {
+      el.contentEditable = editMode ? 'true' : 'false';
+    });
+    if (editMode) {
+      toast.classList.add('show');
+      setTimeout(function() { toast.classList.remove('show'); }, 2500);
+    }
+  });
+
+  // 长按2秒清除
+  var lpTimer;
+  btn.addEventListener('mousedown', function() { lpTimer = setTimeout(function() { localStorage.removeItem(STORAGE); location.reload(); }, 2000); });
+  btn.addEventListener('mouseup', function() { clearTimeout(lpTimer); });
+  btn.addEventListener('mouseleave', function() { clearTimeout(lpTimer); });
+  btn.addEventListener('touchstart', function() { lpTimer = setTimeout(function() { localStorage.removeItem(STORAGE); location.reload(); }, 2000); }, { passive: true });
+  btn.addEventListener('touchend', function() { clearTimeout(lpTimer); });
+
+  load();
+}
+
+/* ============================================================
+   MODULE J: Init
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', function() {
+  initPages();
+  initDots();
+  initControls();
+  initHero();
+  initSlider();
+  initModal();
+  initAI();
+  initEdit();
+});
+
+})();
+</script>
 </body>
 </html>
